@@ -14,6 +14,7 @@ import CalendarSimple from './pages/CalendarSimple'
 import HistorySimple from './pages/HistorySimple'
 import BillingSimple from './pages/BillingSimple'
 import StatisticsSimple from './pages/StatisticsSimple'
+import StatisticsAdvanced from './pages/StatisticsAdvanced'
 import SignUp from './pages/signup';
 import Login from './pages/login';
 import AuthProvider from './store/AuthProvider';
@@ -128,6 +129,7 @@ function AppSimple() {
                               <Route path="calendar" element={<CalendarSimple />} />
                               <Route path="history" element={<HistorySimple />} />
                               <Route path="statistics" element={<StatisticsSimple />} />
+                              <Route path="statistics-advanced" element={<StatisticsAdvanced />} />
                               <Route path="billing" element={<BillingSimple />} />
                               <Route path="patient-profile/:patientId" element={<PatientProfile />} />
                               <Route path="*" element={<Navigate to="/home/dashboard" replace />} />
