@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cabinet Médical - Écran d'affichage</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'sans': ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        medical: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .glow-effect {
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.3);
+        }
+        .pulse-animation {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: .8;
+            }
+        }
+        .slide-up {
+            animation: slideUp 0.5s ease-out forwards;
+        }
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen text-white font-sans overflow-hidden">
+    <!-- Header avec horloge -->
+    <header class="bg-black bg-opacity-30 backdrop-blur-sm p-6">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-4">
+                <i class="fas fa-heartbeat text-4xl text-cyan-300"></i>
+                <div>
+                    <h1 class="text-3xl font-bold text-white">Cabinet Médical</h1>
+                    <p class="text-cyan-200 text-lg">File d'attente en temps réel</p>
+                </div>
+            </div>
+            
+            <!-- Horloge -->
+            <div class="text-right">
+                <div id="current-time" class="text-4xl font-bold text-white"></div>
+                <div id="current-date" class="text-lg text-cyan-200"></div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-6 py-8">
+        
+        <!-- Patient en cours de consultation -->
+        <div id="current-patient-section" class="mb-12">
+            <h2 class="text-2xl font-semibold text-cyan-100 mb-6 text-center">
+                <i class="fas fa-user-md mr-3"></i>En consultation
+            </h2>
+            
+            <div id="current-patient-card" class="bg-white bg-opacity-20 backdrop-blur-lg rounded-2xl p-8 text-center glow-effect">
+                <!-- Contenu dynamique -->
+            </div>
+        </div>
+
+        <!-- Prochains patients -->
+        <div id="next-patients-section">
+            <h2 class="text-2xl font-semibold text-cyan-100 mb-6 text-center">
+                <i class="fas fa-clock mr-3"></i>Prochains patients
+            </h2>
+            
+            <div id="next-patients-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Contenu dynamique -->
+            </div>
+        </div>
+
+        <!-- Message d'information -->
+        <div id="info-message" class="mt-12 text-center">
+            <div class="bg-black bg-opacity-30 backdrop-blur-sm rounded-xl p-6 inline-block">
+                <p class="text-cyan-200 text-lg">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    Merci de patienter, vous serez appelé(e) par votre nom
+                </p>
+            </div>
+        </div>
+
+        <!-- Statistiques en temps réel -->
+        <div id="stats-section" class="mt-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-black bg-opacity-30 backdrop-blur-sm rounded-xl p-6 text-center">
+                    <i class="fas fa-users text-2xl text-cyan-300 mb-2"></i>
+                    <div id="total-waiting" class="text-3xl font-bold text-white">-</div>
+                    <div class="text-cyan-200">En attente</div>
+                </div>
+                
+                <div class="bg-black bg-opacity-30 backdrop-blur-sm rounded-xl p-6 text-center">
+                    <i class="fas fa-clock text-2xl text-yellow-300 mb-2"></i>
+                    <div id="avg-wait-time" class="text-3xl font-bold text-white">-</div>
+                    <div class="text-cyan-200">Temps d'attente moyen</div>
+                </div>
+                
+                <div class="bg-black bg-opacity-30 backdrop-blur-sm rounded-xl p-6 text-center">
+                    <i class="fas fa-calendar-day text-2xl text-green-300 mb-2"></i>
+                    <div id="patients-today" class="text-3xl font-bold text-white">-</div>
+                    <div class="text-cyan-200">Patients aujourd'hui</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="fixed bottom-0 left-0 right-0 bg-black bg-opacity-30 backdrop-blur-sm p-4">
+        <div class="max-w-7xl mx-auto text-center">
+            <p class="text-cyan-200 text-sm">
+                Dernière mise à jour : <span id="last-update">-</span>
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        class DisplayScreen {
+            constructor() {
+                this.patients = [];
+                this.visits = [];
+                this.queue = [];
+                this.refreshInterval = 15000; // 15 secondes
+                
+                this.init();
+            }
+
+            async init() {
+                this.updateClock();
+                setInterval(() => this.updateClock(), 1000);
+                
+                await this.loadData();
+                this.updateDisplay();
+                
+                // Actualisation automatique
+                setInterval(async () => {
+                    await this.loadData();
+                    this.updateDisplay();
+                }, this.refreshInterval);
+            }
+
+            updateClock() {
+                const now = new Date();
+                
+                const timeOptions = {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                };
+                
+                const dateOptions = {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                };
+
+                document.getElementById('current-time').textContent = 
+                    now.toLocaleTimeString('fr-FR', timeOptions);
+                    
+                document.getElementById('current-date').textContent = 
+                    now.toLocaleDateString('fr-FR', dateOptions);
+            }
+
+            async loadData() {
+                try {
+                    // Charger les patients
+                    const patientsResponse = await fetch('tables/patients');
+                    const patientsData = await patientsResponse.json();
+                    this.patients = patientsData.data || [];
+
+                    // Charger les visites
+                    const visitsResponse = await fetch('tables/visits');
+                    const visitsData = await visitsResponse.json();
+                    this.visits = visitsData.data || [];
+
+                    this.buildQueue();
+                    
+                } catch (error) {
+                    console.warn('Chargement des données depuis les APIs non disponible, utilisation de données de test:', error);
+                    this.loadTestData();
+                }
+                
+                // Mettre à jour le timestamp
+                document.getElementById('last-update').textContent = 
+                    new Date().toLocaleTimeString('fr-FR');
+            }
+
+            loadTestData() {
+                // Données de test similaires à l'application principale
+                this.patients = [
+                    {
+                        id: 'patient-1',
+                        nom: 'Benali',
+                        prenom: 'Nadia',
+                        age: 34
+                    },
+                    {
+                        id: 'patient-2',
+                        nom: 'Kaci',
+                        prenom: 'Yacine',
+                        age: 58
+                    },
+                    {
+                        id: 'patient-3',
+                        nom: 'Mansouri',
+                        prenom: 'Amina',
+                        age: 72
+                    },
+                    {
+                        id: 'patient-4',
+                        nom: 'Dupont',
+                        prenom: 'Michel',
+                        age: 45
+                    },
+                    {
+                        id: 'patient-5',
+                        nom: 'Martin',
+                        prenom: 'Sophie',
+                        age: 29
+                    }
+                ];
+
+                this.visits = [
+                    {
+                        id: 'visit-1',
+                        patient_id: 'patient-1',
+                        statut: 'en_consultation',
+                        niveau_urgence: 'standard',
+                        heure_arrivee: new Date().getTime() - 45*60*1000,
+                        heure_debut_consult: new Date().getTime() - 20*60*1000,
+                        motif: 'Consultation de routine'
+                    },
+                    {
+                        id: 'visit-2',
+                        patient_id: 'patient-2',
+                        statut: 'appele',
+                        niveau_urgence: 'prioritaire',
+                        heure_arrivee: new Date().getTime() - 25*60*1000,
+                        heure_appel: new Date().getTime() - 5*60*1000,
+                        motif: 'Suivi médical'
+                    },
+                    {
+                        id: 'visit-3',
+                        patient_id: 'patient-3',
+                        statut: 'attente',
+                        niveau_urgence: 'standard',
+                        heure_arrivee: new Date().getTime() - 15*60*1000,
+                        motif: 'Contrôle de routine'
+                    },
+                    {
+                        id: 'visit-4',
+                        patient_id: 'patient-4',
+                        statut: 'attente',
+                        niveau_urgence: 'standard',
+                        heure_arrivee: new Date().getTime() - 10*60*1000,
+                        motif: 'Consultation'
+                    },
+                    {
+                        id: 'visit-5',
+                        patient_id: 'patient-5',
+                        statut: 'attente',
+                        niveau_urgence: 'critique',
+                        heure_arrivee: new Date().getTime() - 5*60*1000,
+                        motif: 'Urgence'
+                    }
+                ];
+
+                this.buildQueue();
+            }
+
+            buildQueue() {
+                // Construire la file d'attente selon les règles de priorisation
+                this.queue = this.visits
+                    .filter(visit => ['attente', 'appele'].includes(visit.statut))
+                    .sort((a, b) => {
+                        const urgenceOrder = { 'critique': 0, 'prioritaire': 1, 'standard': 2 };
+                        const urgenceA = urgenceOrder[a.niveau_urgence] ?? 2;
+                        const urgenceB = urgenceOrder[b.niveau_urgence] ?? 2;
+                        
+                        if (urgenceA !== urgenceB) {
+                            return urgenceA - urgenceB;
+                        }
+                        
+                        return a.heure_arrivee - b.heure_arrivee;
+                    })
+                    .map(visit => {
+                        const patient = this.patients.find(p => p.id === visit.patient_id);
+                        return { ...visit, patient };
+                    });
+            }
+
+            updateDisplay() {
+                this.updateCurrentPatient();
+                this.updateNextPatients();
+                this.updateStats();
+            }
+
+            updateCurrentPatient() {
+                const currentVisit = this.visits.find(visit => visit.statut === 'en_consultation');
+                const card = document.getElementById('current-patient-card');
+                
+                if (!card) return;
+
+                if (currentVisit) {
+                    const patient = this.patients.find(p => p.id === currentVisit.patient_id);
+                    const consultationTime = this.calculateConsultationTime(currentVisit.heure_debut_consult);
+                    
+                    card.innerHTML = `
+                        <div class="pulse-animation">
+                            <div class="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center">
+                                <span class="text-3xl font-bold text-white">${patient?.prenom?.charAt(0) || '?'}${patient?.nom?.charAt(0) || '?'}</span>
+                            </div>
+                            <h3 class="text-4xl font-bold text-white mb-2">
+                                ${patient ? `${patient.prenom} ${patient.nom}` : 'Patient'}
+                            </h3>
+                            <p class="text-xl text-cyan-100 mb-4">En consultation</p>
+                            <div class="flex justify-center items-center space-x-6 text-lg text-cyan-200">
+                                <div class="flex items-center">
+                                    <i class="fas fa-clock mr-2"></i>
+                                    <span>Depuis ${consultationTime}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    card.innerHTML = `
+                        <div class="text-center py-8">
+                            <i class="fas fa-user-slash text-6xl text-gray-400 mb-4"></i>
+                            <h3 class="text-2xl font-semibold text-gray-300">Aucune consultation en cours</h3>
+                            <p class="text-gray-400 mt-2">Le médecin n'est pas en consultation</p>
+                        </div>
+                    `;
+                }
+            }
+
+            updateNextPatients() {
+                const grid = document.getElementById('next-patients-grid');
+                if (!grid) return;
+
+                const nextPatients = this.queue.slice(0, 6); // Afficher jusqu'à 6 prochains patients
+
+                if (nextPatients.length === 0) {
+                    grid.innerHTML = `
+                        <div class="col-span-full text-center py-12">
+                            <i class="fas fa-clipboard-list text-6xl text-gray-400 mb-4"></i>
+                            <p class="text-2xl text-gray-300">Aucun patient en attente</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const patientsHTML = nextPatients.map((item, index) => {
+                    const waitTime = this.calculateWaitTime(item.heure_arrivee);
+                    const urgenceColor = this.getUrgenceColor(item.niveau_urgence);
+                    const urgenceIcon = this.getUrgenceIcon(item.niveau_urgence);
+                    const isNext = index === 0;
+
+                    return `
+                        <div class="bg-white bg-opacity-15 backdrop-blur-lg rounded-xl p-6 text-center slide-up ${isNext ? 'glow-effect ring-2 ring-cyan-300' : ''}" 
+                             style="animation-delay: ${index * 0.1}s">
+                            <div class="flex justify-between items-start mb-4">
+                                <span class="text-2xl font-bold text-white">${index + 1}</span>
+                                <div class="flex items-center space-x-2">
+                                    <i class="${urgenceIcon} text-lg ${urgenceColor}"></i>
+                                    ${item.statut === 'appele' ? '<i class="fas fa-volume-up text-blue-300 animate-pulse"></i>' : ''}
+                                </div>
+                            </div>
+                            
+                            <div class="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-full flex items-center justify-center">
+                                <span class="text-xl font-bold text-white">
+                                    ${item.patient?.prenom?.charAt(0) || '?'}${item.patient?.nom?.charAt(0) || '?'}
+                                </span>
+                            </div>
+                            
+                            <h4 class="text-xl font-semibold text-white mb-2">
+                                ${item.patient ? `${item.patient.prenom} ${item.patient.nom}` : 'Patient'}
+                            </h4>
+                            
+                            <div class="text-sm text-cyan-200 space-y-1">
+                                <div class="flex items-center justify-center">
+                                    <i class="fas fa-clock mr-2"></i>
+                                    <span>Attente: ${waitTime}</span>
+                                </div>
+                                ${item.statut === 'appele' ? `
+                                    <div class="flex items-center justify-center text-blue-300">
+                                        <i class="fas fa-phone mr-2"></i>
+                                        <span>Appelé</span>
+                                    </div>
+                                ` : ''}
+                                ${isNext ? `
+                                    <div class="mt-3 px-3 py-1 bg-cyan-500 bg-opacity-30 rounded-full">
+                                        <span class="text-cyan-100 font-medium">Suivant</span>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                grid.innerHTML = patientsHTML;
+            }
+
+            updateStats() {
+                const totalWaiting = this.queue.length;
+                document.getElementById('total-waiting').textContent = totalWaiting;
+
+                // Calculer le temps d'attente moyen
+                const waitingVisits = this.visits.filter(visit => 
+                    visit.heure_debut_consult && visit.heure_arrivee
+                );
+                
+                let avgWaitTime = '-';
+                if (waitingVisits.length > 0) {
+                    const totalWaitTime = waitingVisits.reduce((sum, visit) => {
+                        return sum + (visit.heure_debut_consult - visit.heure_arrivee);
+                    }, 0);
+                    const avgWaitMinutes = Math.round(totalWaitTime / waitingVisits.length / (1000 * 60));
+                    avgWaitTime = `${avgWaitMinutes}min`;
+                }
+                document.getElementById('avg-wait-time').textContent = avgWaitTime;
+
+                // Patients aujourd'hui
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const todayVisits = this.visits.filter(visit => {
+                    const visitDate = new Date(visit.created_at || 0);
+                    visitDate.setHours(0, 0, 0, 0);
+                    return visitDate.getTime() === today.getTime();
+                }).length;
+                
+                document.getElementById('patients-today').textContent = todayVisits;
+            }
+
+            calculateWaitTime(arrivalTime) {
+                const now = new Date().getTime();
+                const waitTimeMs = now - arrivalTime;
+                const minutes = Math.floor(waitTimeMs / (1000 * 60));
+                const hours = Math.floor(minutes / 60);
+                
+                if (hours > 0) {
+                    return `${hours}h ${minutes % 60}min`;
+                }
+                return `${minutes}min`;
+            }
+
+            calculateConsultationTime(startTime) {
+                const now = new Date().getTime();
+                const consultTimeMs = now - startTime;
+                const minutes = Math.floor(consultTimeMs / (1000 * 60));
+                const hours = Math.floor(minutes / 60);
+                
+                if (hours > 0) {
+                    return `${hours}h ${minutes % 60}min`;
+                }
+                return `${minutes}min`;
+            }
+
+            getUrgenceColor(niveau) {
+                switch (niveau) {
+                    case 'critique': return 'text-red-300';
+                    case 'prioritaire': return 'text-orange-300';
+                    default: return 'text-gray-300';
+                }
+            }
+
+            getUrgenceIcon(niveau) {
+                switch (niveau) {
+                    case 'critique': return 'fas fa-exclamation-triangle';
+                    case 'prioritaire': return 'fas fa-exclamation-circle';
+                    default: return 'fas fa-circle';
+                }
+            }
+        }
+
+        // Initialisation de l'écran d'affichage
+        document.addEventListener('DOMContentLoaded', function() {
+            new DisplayScreen();
+        });
+
+        // Gestion du mode plein écran
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'F11') {
+                e.preventDefault();
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen();
+                } else {
+                    document.exitFullscreen();
+                }
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,56 @@
+{
+  "name": "cabinet-medical-react",
+  "version": "1.0.0",
+  "description": "Application de gestion de cabinet médical en React",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint src --ext js,jsx --report-unused-disable-directives --max-warnings 0",
+    "install-deps": "node install-deps.js",
+    "check-deps": "node check-deps.js",
+    "fix-deps": "node fix-deps.js",
+    "emergency-fix": "npm uninstall react-query && npm install @tanstack/react-query@^4.35.0 @tanstack/react-query-devtools@^4.35.0",
+    "setup": "npm run install-deps && npm run dev"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^4.35.0",
+    "chart.js": "^4.3.0",
+    "clsx": "^2.0.0",
+    "date-fns": "^2.30.0",
+    "framer-motion": "^10.16.0",
+    "lucide-react": "^0.263.0",
+    "react": "^18.2.0",
+    "react-chartjs-2": "^5.2.0",
+    "react-dom": "^18.2.0",
+    "react-hook-form": "^7.45.0",
+    "react-router-dom": "^6.15.0",
+    "recharts": "^3.3.0",
+    "sonner": "^0.6.0",
+    "zustand": "^4.4.0"
+  },
+  "devDependencies": {
+    "@tanstack/react-query-devtools": "^4.35.0",
+    "@types/react": "^18.2.15",
+    "@types/react-dom": "^18.2.7",
+    "@vitejs/plugin-react": "^4.0.3",
+    "autoprefixer": "^10.4.14",
+    "eslint": "^8.45.0",
+    "eslint-plugin-react": "^7.32.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.3",
+    "postcss": "^8.4.27",
+    "tailwindcss": "^3.3.0",
+    "vite": "^4.4.5"
+  },
+  "keywords": [
+    "cabinet-medical",
+    "react",
+    "healthcare",
+    "queue-management",
+    "medical-practice"
+  ],
+  "author": "Cabinet Médical Team",
+  "license": "MIT"
+}
