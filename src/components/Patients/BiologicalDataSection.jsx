@@ -9,7 +9,9 @@ import {
   AlertCircle,
   CheckCircle,
   AlertTriangle,
-  Upload
+  Upload,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { baseURL } from "../../config";
 import { useAuth } from '../../store/AuthProvider';
@@ -62,6 +64,7 @@ const BiologicalDataSection = ({ patientId }) => {
   const [showModal, setShowModal] = useState(false);
   const [editingRequest, setEditingRequest] = useState(null);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [expandedRequests, setExpandedRequests] = useState({}); // Pour gérer l'accordéon
   
   // État du formulaire de création
   const [formData, setFormData] = useState({
@@ -71,6 +74,14 @@ const BiologicalDataSection = ({ patientId }) => {
 
   // État du formulaire d'édition des résultats
   const [resultsData, setResultsData] = useState({});
+
+  // Fonction pour toggle l'affichage d'une demande
+  const toggleRequestExpansion = (requestId) => {
+    setExpandedRequests(prev => ({
+      ...prev,
+      [requestId]: !prev[requestId]
+    }));
+  };
 
   // Charger les demandes biologiques du patient
   useEffect(() => {
@@ -335,98 +346,129 @@ const BiologicalDataSection = ({ patientId }) => {
           </button>
         </div>
 
-        {/* Tableau des demandes */}
+        {/* Liste des demandes avec accordéon */}
         {biologicalRequests.length > 0 ? (
-          <div className="p-6">
+          <div className="divide-y divide-gray-200">
             {biologicalRequests.map((request) => (
-              <div key={request.id} className="mb-6 last:mb-0">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <h4 className="font-semibold text-gray-800">
-                      Demande N° {request.requestNumber}
-                    </h4>
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      request.status === 'Complété' 
-                        ? 'bg-green-100 text-green-700' 
-                        : 'bg-orange-100 text-orange-700'
-                    }`}>
-                      {request.status === 'Complété' ? '🟢' : '🟠'} {request.status}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-500">
-                      {new Date(request.createdAt).toLocaleDateString('fr-FR')}
-                    </span>
+              <div key={request.id} className="bg-white">
+                {/* En-tête de la demande (toujours visible) */}
+                <div className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                  <div className="flex items-center gap-4 flex-1">
+                    {/* Bouton flèche pour expand/collapse */}
                     <button
-                      onClick={() => handleOpenEditModal(request)}
-                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                      title="Modifier les résultats"
+                      onClick={() => toggleRequestExpansion(request.id)}
+                      className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
+                      title={expandedRequests[request.id] ? "Masquer les détails" : "Afficher les détails"}
                     >
-                      <Edit className="w-5 h-5" />
+                      {expandedRequests[request.id] ? (
+                        <ChevronUp className="w-5 h-5 text-gray-600" />
+                      ) : (
+                        <ChevronDown className="w-5 h-5 text-gray-600" />
+                      )}
                     </button>
+
+                    {/* Info de la demande */}
+                    <div className="flex items-center gap-3">
+                      <h4 className="font-semibold text-gray-800">
+                        Demande N° {request.requestNumber}
+                      </h4>
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                        request.status === 'Complété' 
+                          ? 'bg-green-100 text-green-700' 
+                          : 'bg-orange-100 text-orange-700'
+                      }`}>
+                        {request.status === 'Complété' ? '🟢' : '🟠'} {request.status}
+                      </span>
+                      <span className="text-sm text-gray-500">
+                        {new Date(request.createdAt).toLocaleDateString('fr-FR')}
+                      </span>
+                    </div>
                   </div>
+
+                  {/* Bouton modifier */}
+                  <button
+                    onClick={() => handleOpenEditModal(request)}
+                    className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
+                    title="Modifier les résultats"
+                  >
+                    <Edit className="w-5 h-5" />
+                  </button>
                 </div>
 
-                {/* Tableau des résultats */}
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-gray-200 bg-gray-50">
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Test</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Valeur</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Norme</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Statut</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Date</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {request.requestedExams.map((exam) => {
-                        const range = NORMAL_RANGES[exam];
-                        const value = request.results?.[exam];
-                        const status = compareWithNorm(exam, value);
-                        
-                        return (
-                          <tr key={exam} className="border-b border-gray-100 hover:bg-gray-50">
-                            <td className="py-3 px-4 text-sm text-gray-800">{exam}</td>
-                            <td className="py-3 px-4 text-sm">
-                              {value ? (
-                                <span className="font-semibold text-gray-800">
-                                  {value} {range?.unit}
-                                </span>
-                              ) : (
-                                <span className="text-gray-400 italic">-</span>
-                              )}
-                            </td>
-                            <td className="py-3 px-4 text-xs text-gray-600">
-                              {range ? `${range.min} - ${range.max}` : '-'}
-                            </td>
-                            <td className="py-3 px-4">
-                              {status ? (
-                                <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${
-                                  status === 'Normal' ? 'bg-green-100 text-green-700' :
-                                  status === 'Limite' ? 'bg-orange-100 text-orange-700' :
-                                  'bg-red-100 text-red-700'
-                                }`}>
-                                  {status === 'Normal' && <CheckCircle className="w-3 h-3" />}
-                                  {status === 'Limite' && <AlertTriangle className="w-3 h-3" />}
-                                  {status === 'Hors norme' && <AlertCircle className="w-3 h-3" />}
-                                  {status}
-                                </span>
-                              ) : (
-                                <span className="text-gray-400 text-xs">-</span>
-                              )}
-                            </td>
-                            <td className="py-3 px-4 text-sm text-gray-600">
-                              {request.samplingDate 
-                                ? new Date(request.samplingDate).toLocaleDateString('fr-FR')
-                                : '-'}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                {/* Tableau des résultats (affiché conditionnellement) */}
+                <AnimatePresence>
+                  {expandedRequests[request.id] && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.3, ease: "easeInOut" }}
+                      className="overflow-hidden"
+                    >
+                      <div className="px-6 pb-6">
+                        <div className="overflow-x-auto bg-gray-50 rounded-lg">
+                          <table className="w-full">
+                            <thead>
+                              <tr className="border-b border-gray-200">
+                                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Test</th>
+                                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Valeur</th>
+                                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Norme</th>
+                                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Statut</th>
+                                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Date</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {request.requestedExams.map((exam) => {
+                                const range = NORMAL_RANGES[exam];
+                                const value = request.results?.[exam];
+                                const status = compareWithNorm(exam, value);
+                                
+                                return (
+                                  <tr key={exam} className="border-b border-gray-100 hover:bg-white transition-colors">
+                                    <td className="py-3 px-4 text-sm text-gray-800">{exam}</td>
+                                    <td className="py-3 px-4 text-sm">
+                                      {value ? (
+                                        <span className="font-semibold text-gray-800">
+                                          {value} {range?.unit}
+                                        </span>
+                                      ) : (
+                                        <span className="text-gray-400 italic">-</span>
+                                      )}
+                                    </td>
+                                    <td className="py-3 px-4 text-xs text-gray-600">
+                                      {range ? `${range.min} - ${range.max}` : '-'}
+                                    </td>
+                                    <td className="py-3 px-4">
+                                      {status ? (
+                                        <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${
+                                          status === 'Normal' ? 'bg-green-100 text-green-700' :
+                                          status === 'Limite' ? 'bg-orange-100 text-orange-700' :
+                                          'bg-red-100 text-red-700'
+                                        }`}>
+                                          {status === 'Normal' && <CheckCircle className="w-3 h-3" />}
+                                          {status === 'Limite' && <AlertTriangle className="w-3 h-3" />}
+                                          {status === 'Hors norme' && <AlertCircle className="w-3 h-3" />}
+                                          {status}
+                                        </span>
+                                      ) : (
+                                        <span className="text-gray-400 text-xs">-</span>
+                                      )}
+                                    </td>
+                                    <td className="py-3 px-4 text-sm text-gray-600">
+                                      {request.samplingDate 
+                                        ? new Date(request.samplingDate).toLocaleDateString('fr-FR')
+                                        : '-'}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             ))}
           </div>
