@@ -22,6 +22,7 @@ import {
   CheckCircle,
   AlertTriangle
 } from 'lucide-react';
+import BiologicalDataSection from '../components/Patients/BiologicalDataSection';
 import {
   LineChart,
   Line,
@@ -603,75 +604,8 @@ const PatientProfile: React.FC = () => {
           </Card>
         </div>
 
-        {/* Biological Data */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Droplet className="w-5 h-5 text-purple-500" />
-              Données Biologiques
-            </CardTitle>
-            <div className="flex gap-2">
-              <input
-                type="file"
-                id="file-upload"
-                className="hidden"
-                accept=".pdf,image/*"
-                onChange={handleFileUpload}
-              />
-              <label htmlFor="file-upload">
-                <Button variant="primary" className="cursor-pointer" onClick={() => document.getElementById('file-upload')?.click()}>
-                  <Upload className="w-4 h-4" />
-                  Uploader un fichier
-                </Button>
-              </label>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Test</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Valeur</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Norme</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Statut</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {biologicalTests.map((test, index) => {
-                    const statusStyles = {
-                      normal: { bg: 'bg-green-100', text: 'text-green-700', icon: <CheckCircle className="w-4 h-4" /> },
-                      warning: { bg: 'bg-orange-100', text: 'text-orange-700', icon: <AlertTriangle className="w-4 h-4" /> },
-                      danger: { bg: 'bg-red-100', text: 'text-red-700', icon: <AlertCircle className="w-4 h-4" /> }
-                    };
-                    const style = statusStyles[test.status];
-
-                    return (
-                      <tr key={index} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                        <td className="py-3 px-4 font-medium text-gray-800">{test.test}</td>
-                        <td className="py-3 px-4">
-                          <span className="font-semibold text-gray-800">{test.value}</span>
-                          <span className="text-sm text-gray-500 ml-1">{test.unit}</span>
-                        </td>
-                        <td className="py-3 px-4 text-sm text-gray-600">{test.normalRange}</td>
-                        <td className="py-3 px-4">
-                          <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full ${style.bg} ${style.text} text-sm font-medium`}>
-                            {style.icon}
-                            {test.status === 'normal' ? 'Normal' : test.status === 'warning' ? 'Limite' : 'Hors norme'}
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 text-sm text-gray-600">
-                          {new Date(test.date).toLocaleDateString('fr-FR')}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Biological Data Section - New Component */}
+        <BiologicalDataSection patientId={patientId} />
       </div>
     </div>
   );
