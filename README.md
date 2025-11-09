@@ -110,6 +110,22 @@ Application web moderne développée avec **React 18** pour la gestion complète
 - ✅ **Gestion des allergies** et médicaments
 - ✅ **Historique médical** complet
 - ✅ **Recherche et filtres** avancés
+- ✅ **[NOUVEAU]** Module Données Biologiques intégré
+
+#### 8.1. **🧪 Module Données Biologiques** ✨ **NOUVEAU**
+- ✅ **Gestion complète** des demandes d'analyses biologiques
+- ✅ **Génération automatique** des numéros de demande (BIO-YYYY-XXX)
+- ✅ **Types de prélèvement** : Sang, Urine, Selles, Autre
+- ✅ **10 examens disponibles** : NFS, Glycémie, Cholestérol, TSH, HbA1c, etc.
+- ✅ **Saisie des résultats** avec validation automatique
+- ✅ **Comparaison automatique** avec valeurs normales (✓ ⚠ ✗)
+- ✅ **Corrélations intelligentes** : Glycémie↔HbA1c, Cholestérol↔Triglycérides
+- ✅ **Gestion des dates** : prélèvement, saisie, validation
+- ✅ **États de demande** : 🔴 Récemment créée / 🟢 Complète
+- ✅ **Observations médicales** : commentaires et interprétations
+- ✅ **Lien automatique** : patient actif + médecin connecté
+- ✅ **Interface responsive** avec animations Framer Motion
+- ✅ **Workflow complet** : création → ajout résultats → validation
 
 #### 9. **Écran d'Affichage Public**
 - ✅ Interface plein écran moderne avec effets visuels
@@ -202,7 +218,8 @@ cabinet-medical-react/
 │   │   │   ├── AddPatientModal.jsx
 │   │   │   ├── ExtendedPatientProfile.jsx
 │   │   │   ├── PatientDetailView.jsx
-│   │   │   └── FileUpload.jsx
+│   │   │   ├── FileUpload.jsx
+│   │   │   └── BiologicalDataSection.jsx  # 🧪 Module données biologiques
 │   │   ├── Queue/
 │   │   │   ├── QueueList.jsx
 │   │   │   ├── AddToQueueModal.jsx
@@ -390,6 +407,15 @@ const { loadInitialData, useCreatePatientMutation } = useApi()
    - Rôles Admin/Médecin/Secrétaire, permissions granulaires, navigation adaptative
 6. **📱 Rappels WhatsApp automatiques** ✅ **TERMINÉ**
    - Intégration WhatsApp Business API, templates de messages, suivi des envois
+
+### ✅ Version 2.1 - Module Données Biologiques ✨ **NOUVEAU**
+7. **🧪 Gestion des analyses biologiques** ✅ **TERMINÉ**
+   - CRUD complet avec génération automatique de numéros de demande
+   - 10 types d'examens avec validation automatique des valeurs
+   - Corrélations intelligentes entre examens (diabète, dyslipidémie, insuffisance rénale)
+   - Workflow création → saisie résultats → validation
+   - Interface responsive intégrée dans le profil patient
+   - **Documentation complète** : voir `BIOLOGICAL_DATA_API.md` et `BIOLOGICAL_DATA_DEMO.md`
 
 ### Priorité Haute
 6. **Intégration Chart.js** pour graphiques interactifs
