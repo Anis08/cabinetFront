@@ -22,6 +22,7 @@ import ProtectedRoute from './wrappers/ProtectedRoute';
 import LoggedReirect from './wrappers/LoggedRedirect';
 import DataProvider from './store/DataProvider';
 import PatientProfile from './pages/PatientProfile';
+import PublicWaitingLine from './pages/PublicWaitingLine';
 
 // Page de test simple
 const TestPage = () => (
@@ -105,6 +106,9 @@ function AppSimple() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <Routes>
+          {/* Public route - No authentication required */}
+          <Route path="/waiting-line" element={<PublicWaitingLine />} />
+          
           <Route
             path="*"
             element={
