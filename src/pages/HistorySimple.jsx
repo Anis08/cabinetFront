@@ -364,7 +364,10 @@ const HistorySimple = () => {
     
     const dateStr = date.toISOString().split('T')[0]
     return completedAppointments.filter(apt => {
-      const aptDateStr = apt.date
+      // Gérer les deux formats possibles de date
+      const aptDateStr = typeof apt.date === 'string' 
+        ? apt.date.split('T')[0] 
+        : new Date(apt.date).toISOString().split('T')[0]
       return aptDateStr === dateStr
     })
   }
@@ -375,15 +378,15 @@ const HistorySimple = () => {
   // Calculer les statistiques du jour
   const calculateDayStats = () => {
     const consultations = todayConsultations
-    const totalVitalSigns = consultations.filter(c => c.vitalSigns).length
+    const totalVitalSigns = consultations.filter(c => c.vitalSigns && Object.keys(c.vitalSigns).length > 0).length
     const totalBiologicalTests = consultations.reduce((sum, c) => 
-      sum + (c.biologicalTests ? c.biologicalTests.length : 0), 0
+      sum + (Array.isArray(c.biologicalTests) ? c.biologicalTests.length : 0), 0
     )
     const testsRequested = consultations.reduce((sum, c) => 
-      sum + (c.biologicalTests?.filter(t => t.status === 'demandée').length || 0), 0
+      sum + (Array.isArray(c.biologicalTests) ? c.biologicalTests.filter(t => t.status === 'demandée').length : 0), 0
     )
     const testsReceived = consultations.reduce((sum, c) => 
-      sum + (c.biologicalTests?.filter(t => t.status === 'reçue').length || 0), 0
+      sum + (Array.isArray(c.biologicalTests) ? c.biologicalTests.filter(t => t.status === 'reçue').length : 0), 0
     )
 
     return {
@@ -617,7 +620,7 @@ const HistorySimple = () => {
 
                     <div className="flex items-center space-x-3">
                       {/* Indicateurs */}
-                      {consultation.vitalSigns && (
+                      {consultation.vitalSigns && Object.keys(consultation.vitalSigns).length > 0 && (
                         <div className="flex items-center space-x-1 px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs">
                           <Heart className="h-3 w-3" />
                           <span>Constantes</span>
@@ -674,7 +677,7 @@ const HistorySimple = () => {
                         )}
 
                         {/* Constantes vitales */}
-                        {consultation.vitalSigns && (
+                        {consultation.vitalSigns && Object.keys(consultation.vitalSigns).length > 0 && (
                           <div>
                             <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center">
                               <Heart className="h-4 w-4 mr-2 text-red-500" />
