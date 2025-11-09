@@ -292,6 +292,37 @@ const HistorySimple = () => {
     ]
   }
 
+  // Fonction de transformation des données backend vers frontend
+  const transformBackendData = (appointment) => {
+    // Construire l'objet vitalSigns seulement avec les valeurs présentes
+    const vitalSigns = {}
+    if (appointment.paSystolique) vitalSigns.bloodPressureSystolic = appointment.paSystolique
+    if (appointment.paDiastolique) vitalSigns.bloodPressureDiastolic = appointment.paDiastolique
+    if (appointment.pulse) vitalSigns.heartRate = appointment.pulse
+    if (appointment.poids) vitalSigns.weight = appointment.poids
+    if (appointment.imc) vitalSigns.bmi = appointment.imc
+    if (appointment.pcm) vitalSigns.pcm = appointment.pcm
+
+    return {
+      id: appointment.id,
+      date: appointment.date,
+      startTime: appointment.startTime || appointment.date,
+      endTime: appointment.endTime || appointment.date,
+      patient: appointment.patient || {
+        id: appointment.patientId,
+        fullName: 'Patient inconnu',
+        maladieChronique: null
+      },
+      motif: 'Consultation', // Le backend n'a pas de champ motif
+      statut: appointment.state === 'Completed' ? 'termine' : 
+              appointment.state === 'Cancelled' ? 'annule' : 'en cours',
+      clinicalSummary: appointment.note || null,
+      vitalSigns: Object.keys(vitalSigns).length > 0 ? vitalSigns : null,
+      biologicalTests: appointment.biologicalTests || null,
+      documents: appointment.documents || []
+    }
+  }
+
   // Charger les données
   useEffect(() => {
     loadHistoryData()
@@ -341,11 +372,17 @@ const HistorySimple = () => {
 
       const data = await response.json()
       
-      // Enrichir les données si nécessaire
-      const enrichedData = data.completedApointments || getMockEnrichedData()
+      // Transformer et enrichir les données backend
+      let transformedData = []
+      if (data.completedApointments && Array.isArray(data.completedApointments)) {
+        transformedData = data.completedApointments.map(apt => transformBackendData(apt))
+      } else {
+        // Fallback sur données mockées si pas de données
+        transformedData = getMockEnrichedData()
+      }
       
-      setCompletedAppointments(enrichedData)
-      if (data.avgPaid) setAveragePaid(data.avgPaid)
+      setCompletedAppointments(transformedData)
+      if (data.avgPaid || data.averagePaid) setAveragePaid(data.avgPaid || data.averagePaid)
       if (data.todayRevenue) setCaDay(data.todayRevenue)
       if (data.weekRevenue) setCaWeek(data.weekRevenue)
     } catch (error) {
@@ -722,6 +759,16 @@ const HistorySimple = () => {
                                   unit="kg"
                                   status="normal"
                                   delay={0.15}
+                                />
+                              )}
+                              {consultation.vitalSigns.pcm && (
+                                <VitalSignCard
+                                  icon={Weight}
+                                  label="PCM"
+                                  value={consultation.vitalSigns.pcm}
+                                  unit="kg"
+                                  status="normal"
+                                  delay={0.17}
                                 />
                               )}
                               {consultation.vitalSigns.height && (
