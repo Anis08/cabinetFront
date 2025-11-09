@@ -1,196 +1,207 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Calendar, Plus, Clock, Users, Bell, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Calendar, Plus, Clock, Users, Bell, ChevronLeft, ChevronRight, X, User } from 'lucide-react'
 import { baseURL } from '../config'
 import { useAuth } from '../store/AuthProvider'
 import { useData } from '../store/DataProvider'
 
 const CalendarSimple = () => {
-  const [selectedDate, setSelectedDate] = useState(new Date())
+  const [selectedDate, setSelectedDate] = useState(null)
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [isOpen, setIsOpen] = useState(false);
+  const [appointments, setAppointments] = useState([]);
   const dialogRef = useRef(null);
   const { logout, refresh } = useAuth();
-  const { patients, setPatients, setAverageAge, setNewPatientsThisMonth, setPatientsViewedThisWeek, appo } = useData();
+  const { patients, setPatients, setAverageAge, setNewPatientsThisMonth, setPatientsViewedThisWeek } = useData();
   const [newRendezVousFormData, setNewRendezVousFormData] = useState({
     dateDeRendezVous: '',
     patientId: ''
   });
   const [patientSearch, setPatientSearch] = useState('');
 
-  // Données mockées des rendez-vous
-  const mockAppointments = [
-    {
-      id: 1,
-      date: '2025-08-23',
-      time: '09:00',
-      patient: 'Marie Dubois',
-      motif: 'Contrôle tension',
-      statut: 'attente',
-      duree: 30
-    },
-    {
-      id: 2,
-      date: '2025-08-23',
-      time: '10:30',
-      patient: 'Jean Martin',
-      motif: 'Suivi diabète',
-      statut: 'en_consultation',
-      duree: 45
-    },
-    {
-      id: 3,
-      date: '2025-08-24',
-      time: '14:00',
-      patient: 'Sophie Bernard',
-      motif: 'Consultation générale',
-      statut: 'attente',
-      duree: 30
-    },
-    {
-      id: 4,
-      date: '2025-08-25',
-      time: '16:00',
-      patient: 'Pierre Moreau',
-      motif: 'Résultats analyses',
-      statut: 'attente',
-      duree: 20
-    }
-  ]
-
-
-
+  // Charger les rendez-vous depuis l'API
   useEffect(() => {
-    const getPatients = async () => {
-      if (patients) return;
-      try {
-        let response = await fetch(`${baseURL}/medecin/list-patients`, {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-          credentials: 'include',
-        });
+    loadAppointments();
+    getPatients();
+  }, []);
 
-        if (!response.ok) {
-          if (response.status == 403) {
+  const loadAppointments = async () => {
+    try {
+      let response = await fetch(`${baseURL}/medecin/appointments`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        if (response.status === 403) {
+          logout();
+          return;
+        }
+        if (response.status === 401) {
+          const refreshResponse = await refresh();
+          if (!refreshResponse) {
+            logout();
+            return;
+          }
+          response = await fetch(`${baseURL}/medecin/appointments`, {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
+            },
+            credentials: 'include',
+          });
+        }
+      }
+
+      if (response.ok) {
+        const data = await response.json();
+        setAppointments(data.appointments || []);
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des rendez-vous:', error);
+    }
+  };
+
+  const getPatients = async () => {
+    if (patients) return;
+    try {
+      let response = await fetch(`${baseURL}/medecin/list-patients`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        if (response.status == 403) {
+          logout();
+          return
+        }
+        if (response.status == 401) {
+          const refreshResponse = await refresh();
+          if (!refreshResponse) {
             logout();
             return
           }
-          if (response.status == 401) {
-            const refreshResponse = await refresh();
-            if (!refreshResponse) {
-              logout();
-              return
-            }
 
-
-            response = await fetch(`${baseURL}/medecin/list-patients`, {
-              method: 'GET',
-              headers: {
-                Authorization: `Bearer ${localStorage.getItem('token')}`,
-              },
-              credentials: 'include',
-            });
-
-          }
-
-          if (response.status === 404) {
-
-            alert('Aucun patient trouvé.');
-            return;
-          }
-
-
-
-          if (response.status === 500) {
-
-            alert('Le serveur a rencontré une erreur. Veuillez réessayer plus tard.');
-            return;
-          }
+          response = await fetch(`${baseURL}/medecin/list-patients`, {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
+            },
+            credentials: 'include',
+          });
         }
 
-        const data = await response.json();
+        if (response.status === 404) {
+          alert('Aucun patient trouvé.');
+          return;
+        }
 
-        setPatients(data.patients);
-        setAverageAge(data.averageAge);
-        setNewPatientsThisMonth(data.newPatientsThisMonth);
-        setPatientsViewedThisWeek(data.patientsViewedThisWeek);
+        if (response.status === 500) {
+          alert('Le serveur a rencontré une erreur. Veuillez réessayer plus tard.');
+          return;
+        }
       }
-      catch (error) {
-        return { error: 'Une erreur est survenue lors de la création du patient.' }
-      }
+
+      const data = await response.json();
+      setPatients(data.patients);
+      setAverageAge(data.averageAge);
+      setNewPatientsThisMonth(data.newPatientsThisMonth);
+      setPatientsViewedThisWeek(data.patientsViewedThisWeek);
     }
-
-    getPatients();
-  }, [])
+    catch (error) {
+      console.error('Erreur lors du chargement des patients:', error);
+    }
+  };
 
   // Filtered patients for search
   const filteredPatients = patients ? patients.filter(p =>
     p.fullName.toLowerCase().includes(patientSearch.toLowerCase())
   ) : [];
 
-  // Statistiques des rendez-vous
-  const today = new Date().toISOString().split('T')[0]
-  const stats = {
-    total: mockAppointments.length,
-    aujourdhui: mockAppointments.filter(apt => apt.date === today).length,
-    semaine: mockAppointments.filter(apt => {
-      const aptDate = new Date(apt.date)
-      const weekStart = new Date()
-      const weekEnd = new Date()
-      weekEnd.setDate(weekStart.getDate() + 7)
-      return aptDate >= weekStart && aptDate <= weekEnd
-    }).length,
-    avecRappel: mockAppointments.filter(apt => apt.statut === 'attente').length
-  }
+  // Déterminer le statut d'un rendez-vous (à venir, passé, aujourd'hui)
+  const getAppointmentStatus = (appointmentDate) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const apptDate = new Date(appointmentDate);
+    apptDate.setHours(0, 0, 0, 0);
+    
+    if (apptDate < today) return 'past'; // Passé
+    if (apptDate.getTime() === today.getTime()) return 'today'; // Aujourd'hui
+    return 'future'; // À venir
+  };
 
-  const getStatusColor = (statut) => {
-    switch (statut) {
-      case 'attente': return 'bg-blue-100 text-blue-800 border-blue-200'
-      case 'en_consultation': return 'bg-orange-100 text-orange-800 border-orange-200'
-      case 'termine': return 'bg-green-100 text-green-800 border-green-200'
-      case 'annule': return 'bg-red-100 text-red-800 border-red-200'
-      default: return 'bg-gray-100 text-gray-800 border-gray-200'
-    }
-  }
+  // Obtenir les rendez-vous pour une date spécifique
+  const getAppointmentsForDate = (date) => {
+    const dateStr = date.toISOString().split('T')[0];
+    return appointments
+      .filter(apt => {
+        const aptDate = new Date(apt.date).toISOString().split('T')[0];
+        return aptDate === dateStr;
+      })
+      .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)); // Tri par ordre d'ajout
+  };
+
+  // Statistiques des rendez-vous
+  const today = new Date().toISOString().split('T')[0];
+  const stats = {
+    total: appointments.length,
+    aujourdhui: appointments.filter(apt => {
+      const aptDate = new Date(apt.date).toISOString().split('T')[0];
+      return aptDate === today;
+    }).length,
+    semaine: appointments.filter(apt => {
+      const aptDate = new Date(apt.date);
+      const weekStart = new Date();
+      const weekEnd = new Date();
+      weekEnd.setDate(weekStart.getDate() + 7);
+      return aptDate >= weekStart && aptDate <= weekEnd;
+    }).length,
+    aVenir: appointments.filter(apt => getAppointmentStatus(apt.date) === 'future').length
+  };
 
   // Navigation du calendrier
   const previousMonth = () => {
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))
-  }
+  };
 
   const nextMonth = () => {
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))
-  }
+  };
 
   // Générer les jours du mois
   const getDaysInMonth = () => {
-    const year = currentMonth.getFullYear()
-    const month = currentMonth.getMonth()
-    const firstDay = new Date(year, month, 1)
-    const lastDay = new Date(year, month + 1, 0)
-    const daysInMonth = lastDay.getDate()
-    const startingDayOfWeek = firstDay.getDay()
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startingDayOfWeek = firstDay.getDay();
 
-    const days = []
+    const days = [];
 
     // Jours du mois précédent
     for (let i = startingDayOfWeek - 1; i >= 0; i--) {
-      const date = new Date(year, month, -i)
-      days.push({ date, isCurrentMonth: false })
+      const date = new Date(year, month, -i);
+      days.push({ date, isCurrentMonth: false });
     }
 
     // Jours du mois courant
     for (let day = 1; day <= daysInMonth; day++) {
-      const date = new Date(year, month, day)
-      days.push({ date, isCurrentMonth: true })
+      const date = new Date(year, month, day);
+      days.push({ date, isCurrentMonth: true });
     }
 
-    return days
-  }
+    return days;
+  };
 
-  const days = getDaysInMonth()
+  const days = getDaysInMonth();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -198,14 +209,10 @@ const CalendarSimple = () => {
   };
 
   const NewRendezVous = async () => {
-    setIsOpen(false);
-    setNewRendezVousFormData({
-      dateDeRendezVous: '',
-      patientId: ''
-    })
     const { dateDeRendezVous, patientId } = newRendezVousFormData;
     if (!dateDeRendezVous || !patientId) {
-      return { error: 'Tous les champs sont obligatoires.' }
+      alert('Tous les champs sont obligatoires.');
+      return;
     }
 
     try {
@@ -224,15 +231,14 @@ const CalendarSimple = () => {
       if (!response.ok) {
         if (response.status == 403) {
           logout();
-          return
+          return;
         }
         if (response.status == 401) {
           const refreshResponse = await refresh();
           if (!refreshResponse) {
             logout();
-            return
+            return;
           }
-
 
           response = await fetch(`${baseURL}/medecin/add-appointment`, {
             method: 'POST',
@@ -245,43 +251,69 @@ const CalendarSimple = () => {
             },
             credentials: 'include',
           });
-
         }
 
         if (response.status === 400) {
-
           alert('Requete invalide');
           return;
         }
 
         if (response.status === 409) {
-
           alert('Un rendez-vous identique existe déjà pour ce patient à cette date.');
           return;
         }
 
-
-
         if (response.status === 500) {
-
           alert('Le serveur a rencontré une erreur. Veuillez réessayer plus tard.');
           return;
         }
       }
 
-      //const data = await response.json();
-
-
+      if (response.ok) {
+        await loadAppointments();
+        setIsOpen(false);
+        setNewRendezVousFormData({
+          dateDeRendezVous: '',
+          patientId: ''
+        });
+        setPatientSearch('');
+        alert('Rendez-vous créé avec succès !');
+      }
     }
     catch (error) {
-      return { error: 'Une erreur est survenue lors de la création du rendez-vous.' }
+      console.error('Erreur lors de la création du rendez-vous:', error);
+      alert('Une erreur est survenue lors de la création du rendez-vous.');
     }
+  };
 
-  }
+  // Gérer le clic sur une date
+  const handleDateClick = (date) => {
+    setSelectedDate(date);
+  };
+
+  // Obtenir la couleur de la cellule selon le statut
+  const getDayColor = (date, isCurrentMonth) => {
+    if (!isCurrentMonth) return 'text-gray-400';
+    
+    const dateStr = date.toISOString().split('T')[0];
+    const todayStr = new Date().toISOString().split('T')[0];
+    const dayAppointments = getAppointmentsForDate(date);
+    
+    if (dayAppointments.length === 0) return 'text-gray-900';
+    
+    // Vérifier le statut
+    const status = getAppointmentStatus(dateStr);
+    
+    if (status === 'past') return 'bg-red-100 text-red-800 font-semibold'; // Passé = Rouge
+    if (status === 'today') return 'bg-blue-500 text-white font-bold'; // Aujourd'hui = Bleu
+    return 'bg-green-100 text-green-800 font-semibold'; // À venir = Vert
+  };
+
+  // Obtenir les rendez-vous sélectionnés
+  const selectedDateAppointments = selectedDate ? getAppointmentsForDate(selectedDate) : [];
 
   return (
     <>
-
       <div className="space-y-6">
         {/* En-tête */}
         <motion.div
@@ -355,41 +387,47 @@ const CalendarSimple = () => {
                 <Bell className="h-5 w-5 text-purple-600" />
               </div>
               <div className="ml-3">
-                <p className="text-sm font-medium text-gray-500">Avec rappel</p>
-                <p className="text-2xl font-semibold text-gray-900">{stats.avecRappel}</p>
+                <p className="text-sm font-medium text-gray-500">À venir</p>
+                <p className="text-2xl font-semibold text-gray-900">{stats.aVenir}</p>
               </div>
             </div>
           </div>
         </motion.div>
 
-        {/* WhatsApp Info */}
+        {/* Légende des couleurs */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.2 }}
-          className="bg-green-50 border border-green-200 rounded-lg p-4"
+          className="bg-white rounded-lg shadow-sm border border-gray-200 p-4"
         >
-          <div className="flex items-start space-x-3">
-            <Bell className="h-5 w-5 text-green-600 mt-0.5" />
-            <div>
-              <h4 className="text-sm font-medium text-green-900">
-                📱 Rappels WhatsApp automatiques
-              </h4>
-              <p className="text-sm text-green-800 mt-1">
-                Les patients recevront automatiquement un rappel WhatsApp 24h avant leur rendez-vous.
-                Simulation complète avec templates personnalisés et statistiques d'envoi.
-              </p>
+          <div className="flex items-center justify-center gap-6 flex-wrap">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded bg-green-100 border-2 border-green-400"></div>
+              <span className="text-sm text-gray-700">🟩 Rendez-vous à venir</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded bg-red-100 border-2 border-red-400"></div>
+              <span className="text-sm text-gray-700">🟥 Rendez-vous passés</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded bg-blue-500 border-2 border-blue-700"></div>
+              <span className="text-sm text-gray-700">🟦 Aujourd'hui</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded bg-blue-200 border-2 border-blue-600"></div>
+              <span className="text-sm text-gray-700">📌 Date sélectionnée</span>
             </div>
           </div>
         </motion.div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Mini calendrier */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Calendrier */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.3 }}
-            className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+            className="lg:col-span-2 bg-white rounded-lg shadow-sm border border-gray-200 p-6"
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900">
@@ -398,116 +436,147 @@ const CalendarSimple = () => {
               <div className="flex items-center space-x-2">
                 <button
                   onClick={previousMonth}
-                  className="p-1 hover:bg-gray-100 rounded"
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                 >
                   <ChevronLeft className="h-5 w-5 text-gray-600" />
                 </button>
                 <button
                   onClick={nextMonth}
-                  className="p-1 hover:bg-gray-100 rounded"
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                 >
                   <ChevronRight className="h-5 w-5 text-gray-600" />
                 </button>
               </div>
             </div>
 
-            <div className="grid grid-cols-7 gap-1 text-center text-sm">
+            <div className="grid grid-cols-7 gap-2 text-center text-sm">
               {['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'].map(day => (
-                <div key={day} className="p-2 text-gray-500 font-medium">{day}</div>
+                <div key={day} className="p-2 text-gray-500 font-semibold">{day}</div>
               ))}
 
               {days.map((day, index) => {
-                const dateStr = day.date.toISOString().split('T')[0]
-                const hasAppointment = mockAppointments.some(apt => apt.date === dateStr)
+                const dayAppointments = getAppointmentsForDate(day.date);
+                const isSelected = selectedDate && 
+                  selectedDate.toISOString().split('T')[0] === day.date.toISOString().split('T')[0];
+                const dayColor = getDayColor(day.date, day.isCurrentMonth);
 
                 return (
                   <div
                     key={index}
-                    className={`p-2 cursor-pointer hover:bg-blue-50 rounded ${day.isCurrentMonth ? 'text-gray-900' : 'text-gray-400'
-                      } ${hasAppointment ? 'bg-blue-100 font-semibold text-blue-800' : ''}`}
+                    onClick={() => day.isCurrentMonth && handleDateClick(day.date)}
+                    className={`
+                      min-h-[80px] p-2 cursor-pointer rounded-lg border-2 transition-all
+                      ${day.isCurrentMonth ? 'hover:border-blue-400 hover:shadow-md' : 'border-transparent'}
+                      ${isSelected ? 'border-blue-600 bg-blue-50 shadow-lg' : 'border-gray-200'}
+                      ${dayColor}
+                    `}
                   >
-                    {day.date.getDate()}
-                    {hasAppointment && <div className="w-1 h-1 bg-blue-600 rounded-full mx-auto mt-1"></div>}
+                    <div className="font-semibold mb-1">{day.date.getDate()}</div>
+                    {dayAppointments.length > 0 && (
+                      <div className="space-y-1">
+                        {dayAppointments.slice(0, 2).map((apt, idx) => {
+                          const patient = patients?.find(p => p.id === apt.patientId);
+                          return (
+                            <div 
+                              key={apt.id} 
+                              className="text-[10px] bg-white/80 rounded px-1 py-0.5 truncate"
+                              title={patient?.fullName || 'Patient'}
+                            >
+                              {idx + 1}. {patient?.fullName?.split(' ')[0] || 'Patient'}
+                            </div>
+                          );
+                        })}
+                        {dayAppointments.length > 2 && (
+                          <div className="text-[10px] text-gray-600 font-bold">
+                            +{dayAppointments.length - 2} autre(s)
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                )
+                );
               })}
             </div>
           </motion.div>
 
-          {/* Liste des rendez-vous */}
+          {/* Détails des rendez-vous du jour sélectionné */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.4 }}
             className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
           >
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Prochains rendez-vous
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-blue-600" />
+              {selectedDate 
+                ? `Rendez-vous du ${selectedDate.toLocaleDateString('fr-FR')}`
+                : 'Sélectionnez une date'}
             </h3>
 
-            <div className="space-y-3">
-              {mockAppointments.map((appointment, index) => (
-                <motion.div
-                  key={appointment.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.3, delay: 0.1 * index }}
-                  className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50"
-                >
-                  <div className="flex items-center space-x-3">
-                    <div className="text-sm font-semibold text-gray-900">
-                      {appointment.time}
-                    </div>
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">
-                        {appointment.patient}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        {appointment.motif} • {appointment.duree}min
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <div className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(appointment.statut)}`}>
-                      {appointment.statut}
-                    </div>
-                    <button className="p-1 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded transition-colors">
-                      <Bell className="h-4 w-4" />
-                    </button>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
+            {selectedDate ? (
+              selectedDateAppointments.length > 0 ? (
+                <div className="space-y-3">
+                  {selectedDateAppointments.map((appointment, idx) => {
+                    const patient = patients?.find(p => p.id === appointment.patientId);
+                    const status = getAppointmentStatus(appointment.date);
+                    
+                    return (
+                      <motion.div
+                        key={appointment.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.2, delay: 0.1 * idx }}
+                        className={`p-4 rounded-lg border-2 ${
+                          status === 'past' ? 'bg-red-50 border-red-200' :
+                          status === 'today' ? 'bg-blue-50 border-blue-300' :
+                          'bg-green-50 border-green-200'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-gray-700">#{idx + 1}</span>
+                            <User className="w-4 h-4 text-gray-600" />
+                          </div>
+                          <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                            status === 'past' ? 'bg-red-100 text-red-700' :
+                            status === 'today' ? 'bg-blue-100 text-blue-700' :
+                            'bg-green-100 text-green-700'
+                          }`}>
+                            {status === 'past' ? 'Passé' : status === 'today' ? 'Aujourd\'hui' : 'À venir'}
+                          </span>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="font-semibold text-gray-900">
+                            {patient?.fullName || 'Patient inconnu'}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            📅 {new Date(appointment.date).toLocaleDateString('fr-FR')}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            Médecin: Dr. {JSON.parse(localStorage.getItem('name')) || 'N/A'}
+                          </p>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-400">
+                  <Calendar className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                  <p className="text-sm">Aucun rendez-vous ce jour</p>
+                </div>
+              )
+            ) : (
+              <div className="text-center py-8 text-gray-400">
+                <Calendar className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                <p className="text-sm">Cliquez sur une date pour voir les détails</p>
+              </div>
+            )}
           </motion.div>
         </div>
-
-        {/* Statut fonctionnalité */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.5 }}
-          className="bg-purple-50 border border-purple-200 rounded-lg p-4"
-        >
-          <div className="flex items-start space-x-3">
-            <Calendar className="h-5 w-5 text-purple-600 mt-0.5" />
-            <div>
-              <h4 className="text-sm font-medium text-purple-900">
-                Calendrier - Version Simplifiée
-              </h4>
-              <p className="text-sm text-purple-800 mt-1">
-                ✅ Interface calendrier • 📱 Rappels WhatsApp • 📊 Statistiques temps réel
-              </p>
-              <p className="text-xs text-purple-700 mt-2">
-                La version complète inclut : planification intelligente, détection de conflits,
-                gestion des médecins, intégration complète avec la file d'attente et bien plus !
-              </p>
-            </div>
-          </div>
-        </motion.div>
       </div>
 
-
+      {/* Modal de création de rendez-vous */}
       <AnimatePresence>
         {isOpen && (
           <div
@@ -525,17 +594,17 @@ const CalendarSimple = () => {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
-              className="relative w-full max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 z-10 my-8 max-h-[90vh] overflow-y-auto"
+              className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 z-10 my-8 max-h-[90vh] overflow-y-auto"
             >
-              <div className="flex justify-between items-center mb-4 top-0 bg-white dark:bg-slate-800 pb-2">
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
-                  Enter Information
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Nouveau rendez-vous
                 </h3>
                 <button
                   onClick={() => setIsOpen(false)}
-                  className="rounded-full p-1 hover:bg-slate-100 dark:hover:bg-slate-700"
+                  className="rounded-full p-1 hover:bg-gray-100"
                 >
-                  ✕
+                  <X className="w-5 h-5" />
                 </button>
               </div>
 
@@ -544,63 +613,78 @@ const CalendarSimple = () => {
                   e.preventDefault();
                   NewRendezVous();
                 }}
-                className="space-y-3"
+                className="space-y-4"
               >
                 {/* Date input */}
-                <input
-                  name="dateDeRendezVous"
-                  type="date"
-                  min={new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
-                  value={newRendezVousFormData.dateDeRendezVous}
-                  onChange={handleChange}
-                  className="w-full border border-slate-300 dark:border-slate-600 bg-transparent rounded-lg py-2 px-3"
-                />
-
-                {/* Patient search and list */}
-                <input
-                  type="text"
-                  placeholder="Rechercher un patient"
-                  value={patientSearch}
-                  onChange={e => setPatientSearch(e.target.value)}
-                  className="w-full border border-slate-300 dark:border-slate-600 bg-transparent rounded-lg py-2 px-3"
-                />
-                <div className="max-h-40 overflow-y-auto border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800">
-                  {filteredPatients.length === 0 && (
-                    <div className="p-2 text-gray-400 text-sm">Aucun patient trouvé</div>
-                  )}
-                  {filteredPatients.map(patient => (
-                    <div
-                      key={patient.id}
-                      onClick={() =>
-                        setNewRendezVousFormData(prev => ({
-                          ...prev,
-                          patientId: patient.id
-                        }))
-                      }
-                      className={`cursor-pointer px-3 py-2 hover:bg-blue-50 dark:hover:bg-slate-700 ${String(newRendezVousFormData.patientId) === String(patient.id)
-                          ? 'bg-blue-100 dark:bg-blue-900 font-semibold text-blue-800 dark:text-blue-200'
-                          : ''
-                        }`}
-                    >
-                      {patient.fullName}
-                    </div>
-                  ))}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Date du rendez-vous *
+                  </label>
+                  <input
+                    name="dateDeRendezVous"
+                    type="date"
+                    min={new Date().toISOString().split('T')[0]}
+                    value={newRendezVousFormData.dateDeRendezVous}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 rounded-lg py-2 px-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    required
+                  />
                 </div>
 
-                <div className="flex justify-end gap-3 pt-2 sticky bottom-0 bg-white dark:bg-slate-800 pb-2">
+                {/* Patient search and list */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Patient *
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Rechercher un patient..."
+                    value={patientSearch}
+                    onChange={e => setPatientSearch(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg py-2 px-3 mb-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg">
+                    {filteredPatients.length === 0 && (
+                      <div className="p-3 text-gray-400 text-sm text-center">
+                        {patientSearch ? 'Aucun patient trouvé' : 'Commencez à taper pour rechercher'}
+                      </div>
+                    )}
+                    {filteredPatients.map(patient => (
+                      <div
+                        key={patient.id}
+                        onClick={() => {
+                          setNewRendezVousFormData(prev => ({
+                            ...prev,
+                            patientId: patient.id
+                          }));
+                          setPatientSearch(patient.fullName);
+                        }}
+                        className={`cursor-pointer px-3 py-2 hover:bg-blue-50 transition-colors ${
+                          String(newRendezVousFormData.patientId) === String(patient.id)
+                            ? 'bg-blue-100 font-semibold text-blue-800'
+                            : ''
+                        }`}
+                      >
+                        {patient.fullName}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
                   <button
                     type="button"
                     onClick={() => setIsOpen(false)}
-                    className="px-4 py-2 rounded-md border border-slate-200 dark:border-slate-700 bg-transparent hover:bg-slate-50 dark:hover:bg-slate-700"
+                    className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors"
                   >
-                    Cancel
+                    Annuler
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700"
+                    className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     disabled={!newRendezVousFormData.dateDeRendezVous || !newRendezVousFormData.patientId}
                   >
-                    Save
+                    Créer le rendez-vous
                   </button>
                 </div>
               </form>
@@ -608,8 +692,6 @@ const CalendarSimple = () => {
           </div>
         )}
       </AnimatePresence>
-
-
     </>
   )
 }
