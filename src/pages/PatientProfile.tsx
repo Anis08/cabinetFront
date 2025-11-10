@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   Heart,
   Scale,
@@ -33,7 +33,9 @@ import {
   ChevronUp,
   CalendarCheck,
   CalendarX,
-  TrendingUp as TrendingUpIcon
+  TrendingUp as TrendingUpIcon,
+  UserCog,
+  Save
 } from 'lucide-react';
 import BiologicalDataSection from '../components/Patients/BiologicalDataSection';
 import {
@@ -317,10 +319,23 @@ const VitalSignCard: React.FC<{ vital: VitalSign }> = ({ vital }) => {
 const PatientProfile: React.FC = () => {
 
   const { patientId } = useParams();
+  const navigate = useNavigate();
   const [patient, setPatient] = useState(null);
   const [nextAppointment, setNextAppointment] = useState(null)
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const { logout, refresh } = useAuth();
+
+  // Edit Patient States
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editForm, setEditForm] = useState({
+    fullName: '',
+    dateOfBirth: '',
+    gender: '',
+    phoneNumber: '',
+    email: '',
+    address: '',
+    maladieChronique: ''
+  });
 
   // Examens Complémentaires States
   const [showExamModal, setShowExamModal] = useState(false);
@@ -378,6 +393,122 @@ const PatientProfile: React.FC = () => {
       completed: completed,
       missed: missed
     };
+  };
+
+  // Open edit modal with patient data
+  const handleOpenEditModal = () => {
+    if (patient) {
+      setEditForm({
+        fullName: patient.fullName || '',
+        dateOfBirth: patient.dateOfBirth ? patient.dateOfBirth.split('T')[0] : '',
+        gender: patient.gender || '',
+        phoneNumber: patient.phoneNumber || '',
+        email: patient.email || '',
+        address: patient.address || '',
+        maladieChronique: patient.maladieChronique || ''
+      });
+      setShowEditModal(true);
+    }
+  };
+
+  // Update patient information
+  const handleUpdatePatient = async () => {
+    try {
+      let response = await fetch(`${baseURL}/medecin/patients/${patientId}`, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(editForm),
+      });
+
+      if (!response.ok) {
+        if (response.status === 403) {
+          logout();
+          return;
+        }
+        if (response.status === 401) {
+          const refreshResponse = await refresh();
+          if (!refreshResponse) {
+            logout();
+            return;
+          }
+          response = await fetch(`${baseURL}/medecin/patients/${patientId}`, {
+            method: 'PUT',
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify(editForm),
+          });
+        }
+      }
+
+      if (response.ok) {
+        const data = await response.json();
+        setPatient(data.patient);
+        setShowEditModal(false);
+        alert('Informations du patient mises à jour avec succès !');
+      } else {
+        alert('Erreur lors de la mise à jour du patient.');
+      }
+    } catch (error) {
+      console.error('Erreur:', error);
+      alert('Une erreur est survenue lors de la mise à jour.');
+    }
+  };
+
+  // Delete patient
+  const handleDeletePatient = async () => {
+    const confirmDelete = window.confirm(
+      `Êtes-vous sûr de vouloir supprimer le patient ${patient?.fullName} ?\n\nCette action est irréversible et supprimera toutes les données associées (consultations, examens, etc.).`
+    );
+
+    if (!confirmDelete) return;
+
+    try {
+      let response = await fetch(`${baseURL}/medecin/patients/${patientId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        if (response.status === 403) {
+          logout();
+          return;
+        }
+        if (response.status === 401) {
+          const refreshResponse = await refresh();
+          if (!refreshResponse) {
+            logout();
+            return;
+          }
+          response = await fetch(`${baseURL}/medecin/patients/${patientId}`, {
+            method: 'DELETE',
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
+            },
+            credentials: 'include',
+          });
+        }
+      }
+
+      if (response.ok) {
+        alert('Patient supprimé avec succès.');
+        navigate('/home/patients'); // Redirect to patients list
+      } else {
+        alert('Erreur lors de la suppression du patient.');
+      }
+    } catch (error) {
+      console.error('Erreur:', error);
+      alert('Une erreur est survenue lors de la suppression.');
+    }
   };
 
 
@@ -661,9 +792,17 @@ const PatientProfile: React.FC = () => {
                     </div>
                   </div>
                   <div className="flex gap-3">
-                    <Button variant="outline">
-                      <FileText className="w-4 h-4" />
-                      Dossier complet
+                    <Button variant="outline" onClick={handleOpenEditModal}>
+                      <UserCog className="w-4 h-4" />
+                      Modifier
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={handleDeletePatient}
+                      className="border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Supprimer
                     </Button>
                     <Button variant="primary">
                       <Calendar className="w-4 h-4" />
@@ -1402,6 +1541,150 @@ const PatientProfile: React.FC = () => {
                 className="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
               >
                 Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Patient Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" onClick={() => setShowEditModal(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            {/* Modal Header */}
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+              <h3 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
+                <UserCog className="w-6 h-6 text-blue-600" />
+                Modifier les informations du patient
+              </h3>
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 space-y-6">
+              {/* Full Name */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Nom complet *
+                </label>
+                <input
+                  type="text"
+                  value={editForm.fullName}
+                  onChange={(e) => setEditForm({ ...editForm, fullName: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Prénom NOM"
+                />
+              </div>
+
+              {/* Date of Birth and Gender */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Date de naissance *
+                  </label>
+                  <input
+                    type="date"
+                    value={editForm.dateOfBirth}
+                    onChange={(e) => setEditForm({ ...editForm, dateOfBirth: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Sexe *
+                  </label>
+                  <select
+                    value={editForm.gender}
+                    onChange={(e) => setEditForm({ ...editForm, gender: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">Sélectionner</option>
+                    <option value="Masculin">Masculin</option>
+                    <option value="Féminin">Féminin</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Phone and Email */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Téléphone
+                  </label>
+                  <input
+                    type="tel"
+                    value={editForm.phoneNumber}
+                    onChange={(e) => setEditForm({ ...editForm, phoneNumber: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="+33 6 12 34 56 78"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={editForm.email}
+                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="patient@example.com"
+                  />
+                </div>
+              </div>
+
+              {/* Address */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Adresse
+                </label>
+                <textarea
+                  value={editForm.address}
+                  onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
+                  rows={2}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  placeholder="Adresse complète"
+                />
+              </div>
+
+              {/* Chronic Disease */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Maladie chronique
+                </label>
+                <input
+                  type="text"
+                  value={editForm.maladieChronique}
+                  onChange={(e) => setEditForm({ ...editForm, maladieChronique: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Ex: Hypertension artérielle, Diabète..."
+                />
+              </div>
+
+              <p className="text-sm text-gray-500 italic">
+                * Champs obligatoires
+              </p>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex justify-end gap-3 pt-4 px-6 pb-6 border-t border-gray-200 bg-gray-50">
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-100 transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleUpdatePatient}
+                className="px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg font-medium hover:shadow-lg transition-all duration-200 flex items-center gap-2"
+              >
+                <Save className="w-4 h-4" />
+                Enregistrer les modifications
               </button>
             </div>
           </div>
