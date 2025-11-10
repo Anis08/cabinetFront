@@ -127,7 +127,8 @@ const PublicWaitingLine = () => {
       <div className="relative z-10 h-full flex">
         {/* LEFT SIDE - Waiting List */}
         <div className="w-2/5 h-full flex flex-col p-6">
-          {/* Header with time */}
+
+        {/* Header with time */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -146,6 +147,115 @@ const PublicWaitingLine = () => {
               </motion.div>
             </div>
           </motion.div>
+
+          
+
+        {/* ACTIVE PATIENT - Center */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
+            className="flex-1 mb-4"
+          >
+            <div className="relative h-full">
+              {/* Glow effect */}
+              <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 rounded-3xl blur-xl opacity-30"></div>
+              
+              {/* Main card */}
+              <div className="relative h-full backdrop-blur-2xl bg-white/10 rounded-3xl border border-white/20 overflow-hidden flex flex-col">
+                {/* Badge */}
+                <div className="p-6 pb-4">
+                  <div className="flex justify-center">
+                    <motion.div
+                      animate={{ 
+                        boxShadow: [
+                          "0 0 20px rgba(34, 211, 238, 0.5)",
+                          "0 0 40px rgba(168, 85, 247, 0.5)",
+                          "0 0 20px rgba(34, 211, 238, 0.5)"
+                        ]
+                      }}
+                      transition={{ duration: 3, repeat: Infinity }}
+                      className="inline-flex items-center space-x-3 px-6 py-3 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full"
+                    >
+                      <Heart className="h-5 w-5 text-white animate-pulse" />
+                      <span className="text-white text-xl font-bold tracking-wide">EN CONSULTATION</span>
+                      <Heart className="h-5 w-5 text-white animate-pulse" />
+                    </motion.div>
+                  </div>
+                </div>
+                
+                {/* Patient content */}
+                <div className="flex-1 flex items-center justify-center p-6 pt-0">
+                  <AnimatePresence mode="wait">
+                    {currentPatient ? (
+                      <motion.div
+                        key={currentPatient.id}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.9 }}
+                        transition={{ duration: 0.4 }}
+                        className="text-center"
+                      >
+                        {/* Avatar with animated ring */}
+                        <div className="flex justify-center mb-6">
+                          <div className="relative">
+                            <motion.div
+                              animate={{ rotate: 360 }}
+                              transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                              className="absolute -inset-3"
+                            >
+                              <div className="w-full h-full rounded-full border-4 border-transparent border-t-cyan-400 border-r-purple-400 border-b-pink-400"></div>
+                            </motion.div>
+                            <div className="relative h-36 w-36 rounded-full bg-gradient-to-br from-cyan-400 via-purple-400 to-pink-400 p-1">
+                              <div className="h-full w-full rounded-full bg-slate-900 flex items-center justify-center">
+                                <User className="h-20 w-20 text-white" />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Name */}
+                        <motion.h2 
+                          className="text-6xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400"
+                        >
+                          {currentPatient.name || currentPatient.fullName || 'Patient'}
+                        </motion.h2>
+                        
+                        {/* Time */}
+                        {currentPatient.appointmentTime && (
+                          <div className="inline-flex items-center space-x-3 px-5 py-2 backdrop-blur-xl bg-white/10 rounded-full border border-white/20">
+                            <Clock className="h-5 w-5 text-cyan-400" />
+                            <span className="text-xl text-white font-semibold">
+                              {new Date(currentPatient.appointmentTime).toLocaleTimeString('fr-FR', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </span>
+                          </div>
+                        )}
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key="no-patient"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="text-center"
+                      >
+                        <Users className="h-32 w-32 text-white/20 mx-auto mb-4" />
+                        <p className="text-4xl text-white/60 font-medium">
+                          Aucune consultation
+                        </p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
+
+          
 
           {/* Waiting list header */}
           <motion.div
@@ -252,134 +362,15 @@ const PublicWaitingLine = () => {
 
         {/* RIGHT SIDE - Active Patient + Banner Ads */}
         <div className="w-3/5 h-full flex flex-col p-6 pl-3">
-          {/* TOP BANNER AD SPACE */}
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="backdrop-blur-xl bg-gradient-to-r from-pink-500/20 to-orange-500/20 rounded-2xl border border-white/20 overflow-hidden mb-4"
-            style={{ height: '15%' }}
-          >
-            <div className="h-full flex items-center justify-center relative">
-              {/* Placeholder for banner ad */}
-              <div className="text-center">
-                <Sparkles className="h-12 w-12 text-pink-400 mx-auto mb-2" />
-                <p className="text-xl font-semibold text-white/80">Espace Publicitaire</p>
-                <p className="text-sm text-white/60">728 x 90px</p>
-              </div>
-              {/* You can replace this with actual ad content */}
-            </div>
-          </motion.div>
-
-          {/* ACTIVE PATIENT - Center */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5 }}
-            className="flex-1 mb-4"
-          >
-            <div className="relative h-full">
-              {/* Glow effect */}
-              <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 rounded-3xl blur-xl opacity-30"></div>
-              
-              {/* Main card */}
-              <div className="relative h-full backdrop-blur-2xl bg-white/10 rounded-3xl border border-white/20 overflow-hidden flex flex-col">
-                {/* Badge */}
-                <div className="p-6 pb-4">
-                  <div className="flex justify-center">
-                    <motion.div
-                      animate={{ 
-                        boxShadow: [
-                          "0 0 20px rgba(34, 211, 238, 0.5)",
-                          "0 0 40px rgba(168, 85, 247, 0.5)",
-                          "0 0 20px rgba(34, 211, 238, 0.5)"
-                        ]
-                      }}
-                      transition={{ duration: 3, repeat: Infinity }}
-                      className="inline-flex items-center space-x-3 px-6 py-3 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full"
-                    >
-                      <Heart className="h-5 w-5 text-white animate-pulse" />
-                      <span className="text-white text-xl font-bold tracking-wide">EN CONSULTATION</span>
-                      <Heart className="h-5 w-5 text-white animate-pulse" />
-                    </motion.div>
-                  </div>
-                </div>
-                
-                {/* Patient content */}
-                <div className="flex-1 flex items-center justify-center p-6 pt-0">
-                  <AnimatePresence mode="wait">
-                    {currentPatient ? (
-                      <motion.div
-                        key={currentPatient.id}
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.9 }}
-                        transition={{ duration: 0.4 }}
-                        className="text-center"
-                      >
-                        {/* Avatar with animated ring */}
-                        <div className="flex justify-center mb-6">
-                          <div className="relative">
-                            <motion.div
-                              animate={{ rotate: 360 }}
-                              transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-                              className="absolute -inset-3"
-                            >
-                              <div className="w-full h-full rounded-full border-4 border-transparent border-t-cyan-400 border-r-purple-400 border-b-pink-400"></div>
-                            </motion.div>
-                            <div className="relative h-36 w-36 rounded-full bg-gradient-to-br from-cyan-400 via-purple-400 to-pink-400 p-1">
-                              <div className="h-full w-full rounded-full bg-slate-900 flex items-center justify-center">
-                                <User className="h-20 w-20 text-white" />
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        {/* Name */}
-                        <motion.h2 
-                          className="text-6xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400"
-                        >
-                          {currentPatient.name || currentPatient.fullName || 'Patient'}
-                        </motion.h2>
-                        
-                        {/* Time */}
-                        {currentPatient.appointmentTime && (
-                          <div className="inline-flex items-center space-x-3 px-5 py-2 backdrop-blur-xl bg-white/10 rounded-full border border-white/20">
-                            <Clock className="h-5 w-5 text-cyan-400" />
-                            <span className="text-xl text-white font-semibold">
-                              {new Date(currentPatient.appointmentTime).toLocaleTimeString('fr-FR', {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}
-                            </span>
-                          </div>
-                        )}
-                      </motion.div>
-                    ) : (
-                      <motion.div
-                        key="no-patient"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="text-center"
-                      >
-                        <Users className="h-32 w-32 text-white/20 mx-auto mb-4" />
-                        <p className="text-4xl text-white/60 font-medium">
-                          Aucune consultation
-                        </p>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              </div>
-            </div>
-          </motion.div>
+          
+          
 
           {/* BOTTOM BANNER AD SPACE */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="backdrop-blur-xl bg-gradient-to-r from-purple-500/20 to-cyan-500/20 rounded-2xl border border-white/20 overflow-hidden"
-            style={{ height: '15%' }}
+            style={{ height: '100%' }}
           >
             <div className="h-full flex items-center justify-center relative">
               {/* Placeholder for banner ad */}
