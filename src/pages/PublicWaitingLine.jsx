@@ -56,7 +56,9 @@ const PublicWaitingLine = () => {
 
       if (response.ok) {
         const data = await response.json()
+        
         const ads = data.ads || []
+        console.log('data: ', ads)
         
         // Filter by date range
         const now = new Date()
@@ -68,6 +70,7 @@ const PublicWaitingLine = () => {
         
         // Separate by position
         setTopAds(activeAds.filter(ad => ad.position === 'top'))
+        console.log('hamid', activeAds)
         setBottomAds(activeAds.filter(ad => ad.position === 'bottom'))
       }
     } catch (error) {
