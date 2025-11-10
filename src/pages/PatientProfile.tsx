@@ -23,7 +23,11 @@ import {
   AlertTriangle,
   History,
   X,
-  Eye
+  Eye,
+  Download,
+  Plus,
+  Trash2,
+  FileImage
 } from 'lucide-react';
 import BiologicalDataSection from '../components/Patients/BiologicalDataSection';
 import {
@@ -64,6 +68,23 @@ interface BiologicalData {
   normalRange: string;
   status: 'normal' | 'warning' | 'danger';
   date: string;
+}
+
+interface ExamFile {
+  id: string;
+  name: string;
+  url: string;
+  type: string;
+  size: number;
+  uploadDate: string;
+}
+
+interface ComplementaryExam {
+  id: string;
+  type: string;
+  description: string;
+  date: string;
+  files: ExamFile[];
 }
 
 // ============= DONNÉES SIMULÉES =============
@@ -295,6 +316,27 @@ const PatientProfile: React.FC = () => {
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const { logout, refresh } = useAuth();
 
+  // Examens Complémentaires States
+  const [showExamModal, setShowExamModal] = useState(false);
+  const [showFilePreview, setShowFilePreview] = useState(false);
+  const [selectedPreviewFile, setSelectedPreviewFile] = useState<ExamFile | null>(null);
+  const [exams, setExams] = useState<ComplementaryExam[]>([]);
+  const [currentExam, setCurrentExam] = useState<ComplementaryExam | null>(null);
+  const [examForm, setExamForm] = useState({
+    type: '',
+    description: '',
+    date: new Date().toISOString().split('T')[0]
+  });
+  const [uploadingFile, setUploadingFile] = useState(false);
+
+  const examTypes = [
+    'Échographie rénale',
+    'Scanner/IRM',
+    'ECBU',
+    'Biopsie rénale',
+    "Bilan d'imagerie vasculaire"
+  ];
+
 
   function getAgeFromDate(dateString) {
     const birthDate = new Date(dateString);
@@ -432,6 +474,123 @@ const PatientProfile: React.FC = () => {
       setSelectedFile(file);
       alert(`Fichier "${file.name}" sélectionné avec succès !`);
     }
+  };
+
+  // Exam Management Functions
+  const handleAddExam = () => {
+    setCurrentExam(null);
+    setExamForm({
+      type: examTypes[0],
+      description: '',
+      date: new Date().toISOString().split('T')[0]
+    });
+    setShowExamModal(true);
+  };
+
+  const handleSaveExam = () => {
+    if (!examForm.type || !examForm.description || !examForm.date) {
+      alert('Veuillez remplir tous les champs obligatoires');
+      return;
+    }
+
+    if (currentExam) {
+      // Update existing exam
+      setExams(exams.map(exam => 
+        exam.id === currentExam.id 
+          ? { ...exam, ...examForm }
+          : exam
+      ));
+    } else {
+      // Add new exam
+      const newExam: ComplementaryExam = {
+        id: Date.now().toString(),
+        type: examForm.type,
+        description: examForm.description,
+        date: examForm.date,
+        files: []
+      };
+      setExams([...exams, newExam]);
+    }
+
+    setShowExamModal(false);
+    setCurrentExam(null);
+  };
+
+  const handleDeleteExam = (examId: string) => {
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer cet examen ?')) {
+      setExams(exams.filter(exam => exam.id !== examId));
+    }
+  };
+
+  const handleFileUploadForExam = async (examId: string, event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg', 'application/dicom'];
+    if (!validTypes.includes(file.type) && !file.name.toLowerCase().endsWith('.dcm')) {
+      alert('Type de fichier non supporté. Veuillez uploader un PDF, une image (JPG, PNG) ou un fichier DICOM.');
+      return;
+    }
+
+    setUploadingFile(true);
+
+    // Simulate file upload (replace with actual API call)
+    setTimeout(() => {
+      const newFile: ExamFile = {
+        id: Date.now().toString(),
+        name: file.name,
+        url: URL.createObjectURL(file), // In production, use actual uploaded URL
+        type: file.type,
+        size: file.size,
+        uploadDate: new Date().toISOString()
+      };
+
+      setExams(exams.map(exam => 
+        exam.id === examId 
+          ? { ...exam, files: [...exam.files, newFile] }
+          : exam
+      ));
+
+      setUploadingFile(false);
+      alert('Fichier uploadé avec succès !');
+    }, 1000);
+  };
+
+  const handleDeleteFile = (examId: string, fileId: string) => {
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce fichier ?')) {
+      setExams(exams.map(exam => 
+        exam.id === examId 
+          ? { ...exam, files: exam.files.filter(f => f.id !== fileId) }
+          : exam
+      ));
+    }
+  };
+
+  const handlePreviewFile = (file: ExamFile) => {
+    setSelectedPreviewFile(file);
+    setShowFilePreview(true);
+  };
+
+  const handleDownloadFile = (file: ExamFile) => {
+    const link = document.createElement('a');
+    link.href = file.url;
+    link.download = file.name;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+  };
+
+  const getFileIcon = (type: string) => {
+    if (type.includes('pdf')) return <FileText className="w-5 h-5 text-red-500" />;
+    if (type.includes('image')) return <FileImage className="w-5 h-5 text-blue-500" />;
+    return <FileText className="w-5 h-5 text-gray-500" />;
   };
 
   return (
@@ -619,7 +778,307 @@ const PatientProfile: React.FC = () => {
 
         {/* Biological Data Section - New Component */}
         <BiologicalDataSection patientId={patientId} />
+
+        {/* Examens Complémentaires Section */}
+        <div className="mb-8">
+          <Card>
+            <CardHeader className="bg-gradient-to-r from-blue-500 to-purple-500">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-white flex items-center gap-2">
+                  <FileText className="w-6 h-6" />
+                  Examens Complémentaires
+                </CardTitle>
+                <Button
+                  variant="primary"
+                  onClick={handleAddExam}
+                  className="bg-white text-blue-600 hover:bg-gray-100"
+                >
+                  <Plus className="w-4 h-4" />
+                  Ajouter un examen
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="p-6">
+              {exams.length === 0 ? (
+                <div className="text-center py-12 text-gray-500">
+                  <FileText className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                  <p className="text-lg font-medium">Aucun examen complémentaire</p>
+                  <p className="text-sm mt-2">Cliquez sur "Ajouter un examen" pour commencer</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {exams.map((exam) => (
+                    <div
+                      key={exam.id}
+                      className="border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-shadow bg-gradient-to-br from-white to-gray-50"
+                    >
+                      {/* Exam Header */}
+                      <div className="flex items-start justify-between mb-4 pb-4 border-b border-gray-200">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-3 mb-2">
+                            <div className="p-2 bg-blue-100 rounded-lg">
+                              <FileText className="w-5 h-5 text-blue-600" />
+                            </div>
+                            <h3 className="text-xl font-bold text-gray-900">{exam.type}</h3>
+                          </div>
+                          <p className="text-gray-600 mb-2">{exam.description}</p>
+                          <div className="flex items-center text-sm text-gray-500">
+                            <Calendar className="w-4 h-4 mr-2" />
+                            {new Date(exam.date).toLocaleDateString('fr-FR', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric'
+                            })}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleDeleteExam(exam.id)}
+                          className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      </div>
+
+                      {/* Files Section */}
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-sm font-semibold text-gray-700 flex items-center">
+                            <FileImage className="w-4 h-4 mr-2" />
+                            Fichiers associés ({exam.files.length})
+                          </h4>
+                          <label className="cursor-pointer">
+                            <input
+                              type="file"
+                              className="hidden"
+                              accept=".pdf,.jpg,.jpeg,.png,.dcm"
+                              onChange={(e) => handleFileUploadForExam(exam.id, e)}
+                              disabled={uploadingFile}
+                            />
+                            <span className="flex items-center space-x-2 px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm">
+                              <Upload className="w-4 h-4" />
+                              <span>{uploadingFile ? 'Upload...' : 'Uploader un fichier'}</span>
+                            </span>
+                          </label>
+                        </div>
+
+                        {exam.files.length > 0 ? (
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {exam.files.map((file) => (
+                              <div
+                                key={file.id}
+                                className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                              >
+                                <div className="flex items-start space-x-3">
+                                  <div className="flex-shrink-0">
+                                    {getFileIcon(file.type)}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-gray-900 truncate">
+                                      {file.name}
+                                    </p>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                      {formatFileSize(file.size)}
+                                    </p>
+                                    <p className="text-xs text-gray-400">
+                                      {new Date(file.uploadDate).toLocaleDateString('fr-FR')}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center space-x-2 mt-3 pt-3 border-t border-gray-100">
+                                  <button
+                                    onClick={() => handlePreviewFile(file)}
+                                    className="flex-1 flex items-center justify-center space-x-1 px-2 py-1.5 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors text-xs"
+                                  >
+                                    <Eye className="w-3 h-3" />
+                                    <span>Voir</span>
+                                  </button>
+                                  <button
+                                    onClick={() => handleDownloadFile(file)}
+                                    className="flex-1 flex items-center justify-center space-x-1 px-2 py-1.5 bg-green-50 text-green-600 rounded hover:bg-green-100 transition-colors text-xs"
+                                  >
+                                    <Download className="w-3 h-3" />
+                                    <span>Télécharger</span>
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteFile(exam.id, file.id)}
+                                    className="flex items-center justify-center px-2 py-1.5 bg-red-50 text-red-600 rounded hover:bg-red-100 transition-colors"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-6 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                            <FileText className="w-10 h-10 text-gray-400 mx-auto mb-2" />
+                            <p className="text-sm text-gray-500">Aucun fichier associé</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
+
+      {/* Add Exam Modal */}
+      {showExamModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" onClick={() => setShowExamModal(false)}>
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full" onClick={(e) => e.stopPropagation()}>
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-blue-500 to-purple-500 px-6 py-4 flex items-center justify-between rounded-t-xl">
+              <h2 className="text-2xl font-bold text-white flex items-center">
+                <Plus className="w-6 h-6 mr-3" />
+                {currentExam ? 'Modifier l\'examen' : 'Ajouter un examen complémentaire'}
+              </h2>
+              <button
+                onClick={() => setShowExamModal(false)}
+                className="text-white hover:bg-white/20 rounded-full p-2 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 space-y-4">
+              {/* Exam Type */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Type d'examen *
+                </label>
+                <select
+                  value={examForm.type}
+                  onChange={(e) => setExamForm({ ...examForm, type: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">Sélectionner un type</option>
+                  {examTypes.map((type) => (
+                    <option key={type} value={type}>{type}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Date */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Date de l'examen *
+                </label>
+                <input
+                  type="date"
+                  value={examForm.date}
+                  onChange={(e) => setExamForm({ ...examForm, date: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Description / Résultats *
+                </label>
+                <textarea
+                  value={examForm.description}
+                  onChange={(e) => setExamForm({ ...examForm, description: e.target.value })}
+                  rows={4}
+                  placeholder="Décrivez les résultats de l'examen, observations importantes, etc."
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                />
+              </div>
+
+              <p className="text-sm text-gray-500 italic">
+                * Champs obligatoires. Vous pourrez ajouter des fichiers après la création de l'examen.
+              </p>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-gray-50 px-6 py-4 flex justify-end space-x-3 rounded-b-xl">
+              <button
+                onClick={() => setShowExamModal(false)}
+                className="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleSaveExam}
+                className="px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg hover:shadow-lg transition-all"
+              >
+                {currentExam ? 'Modifier' : 'Ajouter'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* File Preview Modal */}
+      {showFilePreview && selectedPreviewFile && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50" onClick={() => setShowFilePreview(false)}>
+          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-blue-500 to-purple-500 px-6 py-4 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-white flex items-center">
+                <Eye className="w-6 h-6 mr-3" />
+                {selectedPreviewFile.name}
+              </h2>
+              <button
+                onClick={() => setShowFilePreview(false)}
+                className="text-white hover:bg-white/20 rounded-full p-2 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+              {selectedPreviewFile.type.includes('image') ? (
+                <img
+                  src={selectedPreviewFile.url}
+                  alt={selectedPreviewFile.name}
+                  className="w-full h-auto rounded-lg"
+                />
+              ) : selectedPreviewFile.type.includes('pdf') ? (
+                <iframe
+                  src={selectedPreviewFile.url}
+                  className="w-full h-[600px] rounded-lg border"
+                  title={selectedPreviewFile.name}
+                />
+              ) : (
+                <div className="text-center py-12">
+                  <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <p className="text-lg font-medium text-gray-700 mb-2">
+                    Aperçu non disponible pour ce type de fichier
+                  </p>
+                  <button
+                    onClick={() => handleDownloadFile(selectedPreviewFile)}
+                    className="mt-4 px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center space-x-2 mx-auto"
+                  >
+                    <Download className="w-5 h-5" />
+                    <span>Télécharger le fichier</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-gray-50 px-6 py-4 flex justify-between items-center border-t border-gray-200">
+              <div className="text-sm text-gray-600">
+                <span className="font-semibold">Taille:</span> {formatFileSize(selectedPreviewFile.size)} •{' '}
+                <span className="font-semibold">Date:</span> {new Date(selectedPreviewFile.uploadDate).toLocaleDateString('fr-FR')}
+              </div>
+              <button
+                onClick={() => handleDownloadFile(selectedPreviewFile)}
+                className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center space-x-2"
+              >
+                <Download className="w-5 h-5" />
+                <span>Télécharger</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* History Modal */}
       {showHistoryModal && (
