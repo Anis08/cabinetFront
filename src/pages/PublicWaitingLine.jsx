@@ -175,8 +175,9 @@ const PublicWaitingLine = () => {
       return (
         <div className="h-full flex items-center justify-center">
           <div className="text-center">
-            <Sparkles className="h-12 w-12 text-white/30 mx-auto mb-2" />
-            <p className="text-lg font-semibold text-white/50">Espace Publicitaire</p>
+            <Sparkles className="h-16 w-16 text-white/30 mx-auto mb-3" />
+            <p className="text-2xl font-semibold text-white/50">Espace Publicitaire</p>
+            <p className="text-sm text-white/30 mt-2">{position === 'top' ? 'Haut' : 'Bas'}</p>
           </div>
         </div>
       )
@@ -241,14 +242,14 @@ const PublicWaitingLine = () => {
       </div>
 
       {/* Main container - Split layout */}
-      <div className="relative z-10 h-full flex">
-        {/* LEFT SIDE - Waiting List */}
-        <div className="w-2/5 h-full flex flex-col p-6">
+      <div className="relative z-10 h-full flex gap-4 p-6">
+        {/* LEFT SIDE - Time + Current Patient + Queue */}
+        <div className="w-2/5 h-full flex flex-col gap-4">
           {/* Header with time */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="backdrop-blur-xl bg-white/10 rounded-2xl p-4 mb-4 border border-white/20"
+            className="backdrop-blur-xl bg-white/10 rounded-2xl p-4 border border-white/20"
           >
             <div className="flex items-center justify-between">
               <div>
@@ -264,16 +265,120 @@ const PublicWaitingLine = () => {
             </div>
           </motion.div>
 
+          {/* CURRENT PATIENT - Between time and queue */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
+            className="flex-shrink-0"
+          >
+            <div className="relative">
+              {/* Glow effect */}
+              <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 rounded-2xl blur-xl opacity-30"></div>
+              
+              {/* Main card */}
+              <div className="relative backdrop-blur-2xl bg-white/10 rounded-2xl border border-white/20 overflow-hidden">
+                {/* Badge */}
+                <div className="p-4 pb-3">
+                  <div className="flex justify-center">
+                    <motion.div
+                      animate={{ 
+                        boxShadow: [
+                          "0 0 15px rgba(34, 211, 238, 0.5)",
+                          "0 0 30px rgba(168, 85, 247, 0.5)",
+                          "0 0 15px rgba(34, 211, 238, 0.5)"
+                        ]
+                      }}
+                      transition={{ duration: 3, repeat: Infinity }}
+                      className="inline-flex items-center space-x-2 px-5 py-2 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full"
+                    >
+                      <Heart className="h-4 w-4 text-white animate-pulse" />
+                      <span className="text-white text-lg font-bold tracking-wide">EN CONSULTATION</span>
+                      <Heart className="h-4 w-4 text-white animate-pulse" />
+                    </motion.div>
+                  </div>
+                </div>
+                
+                {/* Patient content */}
+                <div className="p-4 pt-2">
+                  <AnimatePresence mode="wait">
+                    {currentPatient ? (
+                      <motion.div
+                        key={currentPatient.id}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.9 }}
+                        transition={{ duration: 0.4 }}
+                        className="text-center"
+                      >
+                        {/* Avatar with animated ring */}
+                        <div className="flex justify-center mb-4">
+                          <div className="relative">
+                            <motion.div
+                              animate={{ rotate: 360 }}
+                              transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                              className="absolute -inset-2"
+                            >
+                              <div className="w-full h-full rounded-full border-3 border-transparent border-t-cyan-400 border-r-purple-400 border-b-pink-400"></div>
+                            </motion.div>
+                            <div className="relative h-24 w-24 rounded-full bg-gradient-to-br from-cyan-400 via-purple-400 to-pink-400 p-1">
+                              <div className="h-full w-full rounded-full bg-slate-900 flex items-center justify-center">
+                                <User className="h-12 w-12 text-white" />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Name */}
+                        <motion.h2 
+                          className="text-4xl font-bold mb-3 bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400"
+                        >
+                          {currentPatient.name || currentPatient.fullName || 'Patient'}
+                        </motion.h2>
+                        
+                        {/* Time */}
+                        {currentPatient.appointmentTime && (
+                          <div className="inline-flex items-center space-x-2 px-4 py-2 backdrop-blur-xl bg-white/10 rounded-full border border-white/20">
+                            <Clock className="h-4 w-4 text-cyan-400" />
+                            <span className="text-lg text-white font-semibold">
+                              {new Date(currentPatient.appointmentTime).toLocaleTimeString('fr-FR', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </span>
+                          </div>
+                        )}
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key="no-patient"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="text-center py-6"
+                      >
+                        <Users className="h-20 w-20 text-white/20 mx-auto mb-3" />
+                        <p className="text-2xl text-white/60 font-medium">
+                          Aucune consultation
+                        </p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
           {/* Waiting list header */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="backdrop-blur-xl bg-gradient-to-r from-cyan-500/20 to-purple-500/20 rounded-2xl p-4 mb-4 border border-white/20"
+            className="backdrop-blur-xl bg-gradient-to-r from-cyan-500/20 to-purple-500/20 rounded-2xl p-4 border border-white/20 flex-shrink-0"
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <Users className="h-8 w-8 text-purple-400" />
-                <h2 className="text-3xl font-bold text-white">File d'Attente</h2>
+                <Users className="h-7 w-7 text-purple-400" />
+                <h2 className="text-2xl font-bold text-white">File d'Attente</h2>
               </div>
               <motion.div
                 animate={{ scale: [1, 1.2, 1] }}
@@ -294,8 +399,8 @@ const PublicWaitingLine = () => {
                   animate={{ opacity: 1 }}
                   className="backdrop-blur-xl bg-white/5 rounded-2xl p-8 text-center border border-white/10 h-full flex flex-col items-center justify-center"
                 >
-                  <Users className="h-24 w-24 text-white/20 mb-4" />
-                  <p className="text-2xl text-white/60">Aucun patient en attente</p>
+                  <Users className="h-20 w-20 text-white/20 mb-4" />
+                  <p className="text-xl text-white/60">Aucun patient en attente</p>
                 </motion.div>
               ) : (
                 waitingPatients.map((patient, index) => (
@@ -311,7 +416,7 @@ const PublicWaitingLine = () => {
                     <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-xl opacity-0 group-hover:opacity-20 blur transition-opacity"></div>
                     
                     {/* Card */}
-                    <div className="relative backdrop-blur-xl bg-white/10 rounded-xl p-4 border border-white/20 flex items-center space-x-4">
+                    <div className="relative backdrop-blur-xl bg-white/10 rounded-xl p-3 border border-white/20 flex items-center space-x-3">
                       {/* Position badge */}
                       <motion.div
                         animate={{ 
@@ -322,7 +427,7 @@ const PublicWaitingLine = () => {
                           ]
                         }}
                         transition={{ duration: 2, repeat: Infinity }}
-                        className={`h-16 w-16 rounded-xl flex items-center justify-center text-white text-2xl font-bold flex-shrink-0 ${
+                        className={`h-14 w-14 rounded-xl flex items-center justify-center text-white text-xl font-bold flex-shrink-0 ${
                           index === 0 ? 'bg-gradient-to-br from-yellow-400 to-orange-500' : 
                           index === 1 ? 'bg-gradient-to-br from-orange-400 to-red-500' : 
                           'bg-gradient-to-br from-blue-400 to-purple-500'
@@ -333,13 +438,13 @@ const PublicWaitingLine = () => {
 
                       {/* Patient info */}
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-2xl font-bold text-white truncate">
+                        <h3 className="text-xl font-bold text-white truncate">
                           {patient.name || patient.fullName || 'Patient'}
                         </h3>
                         {patient.appointmentTime && (
                           <div className="flex items-center space-x-2 text-white/70 mt-1">
-                            <Clock className="h-4 w-4" />
-                            <span className="text-sm">
+                            <Clock className="h-3 w-3" />
+                            <span className="text-xs">
                               {new Date(patient.appointmentTime).toLocaleTimeString('fr-FR', {
                                 hour: '2-digit',
                                 minute: '2-digit',
@@ -354,7 +459,7 @@ const PublicWaitingLine = () => {
                         <motion.div
                           animate={{ x: [0, 5, 0] }}
                           transition={{ duration: 1.5, repeat: Infinity }}
-                          className="text-yellow-400 text-sm font-bold"
+                          className="text-yellow-400 text-xs font-bold"
                         >
                           SUIVANT →
                         </motion.div>
@@ -367,128 +472,22 @@ const PublicWaitingLine = () => {
           </div>
         </div>
 
-        {/* RIGHT SIDE - Active Patient + Banner Ads */}
-        <div className="w-3/5 h-full flex flex-col p-6 pl-3">
-          {/* TOP BANNER AD SPACE */}
+        {/* RIGHT SIDE - Full Height Ad Spaces */}
+        <div className="w-3/5 h-full flex flex-col gap-4">
+          {/* TOP BANNER AD SPACE - 50% height */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="backdrop-blur-xl bg-gradient-to-r from-pink-500/20 to-orange-500/20 rounded-2xl border border-white/20 overflow-hidden mb-4"
-            style={{ height: '15%' }}
+            className="flex-1 backdrop-blur-xl bg-gradient-to-r from-pink-500/20 to-orange-500/20 rounded-2xl border border-white/20 overflow-hidden"
           >
             <AdDisplay ads={topAds} currentIndex={currentTopAdIndex} position="top" />
           </motion.div>
 
-          {/* ACTIVE PATIENT - Center */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5 }}
-            className="flex-1 mb-4"
-          >
-            <div className="relative h-full">
-              {/* Glow effect */}
-              <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 rounded-3xl blur-xl opacity-30"></div>
-              
-              {/* Main card */}
-              <div className="relative h-full backdrop-blur-2xl bg-white/10 rounded-3xl border border-white/20 overflow-hidden flex flex-col">
-                {/* Badge */}
-                <div className="p-6 pb-4">
-                  <div className="flex justify-center">
-                    <motion.div
-                      animate={{ 
-                        boxShadow: [
-                          "0 0 20px rgba(34, 211, 238, 0.5)",
-                          "0 0 40px rgba(168, 85, 247, 0.5)",
-                          "0 0 20px rgba(34, 211, 238, 0.5)"
-                        ]
-                      }}
-                      transition={{ duration: 3, repeat: Infinity }}
-                      className="inline-flex items-center space-x-3 px-6 py-3 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full"
-                    >
-                      <Heart className="h-5 w-5 text-white animate-pulse" />
-                      <span className="text-white text-xl font-bold tracking-wide">EN CONSULTATION</span>
-                      <Heart className="h-5 w-5 text-white animate-pulse" />
-                    </motion.div>
-                  </div>
-                </div>
-                
-                {/* Patient content */}
-                <div className="flex-1 flex items-center justify-center p-6 pt-0">
-                  <AnimatePresence mode="wait">
-                    {currentPatient ? (
-                      <motion.div
-                        key={currentPatient.id}
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.9 }}
-                        transition={{ duration: 0.4 }}
-                        className="text-center"
-                      >
-                        {/* Avatar with animated ring */}
-                        <div className="flex justify-center mb-6">
-                          <div className="relative">
-                            <motion.div
-                              animate={{ rotate: 360 }}
-                              transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-                              className="absolute -inset-3"
-                            >
-                              <div className="w-full h-full rounded-full border-4 border-transparent border-t-cyan-400 border-r-purple-400 border-b-pink-400"></div>
-                            </motion.div>
-                            <div className="relative h-36 w-36 rounded-full bg-gradient-to-br from-cyan-400 via-purple-400 to-pink-400 p-1">
-                              <div className="h-full w-full rounded-full bg-slate-900 flex items-center justify-center">
-                                <User className="h-20 w-20 text-white" />
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        {/* Name */}
-                        <motion.h2 
-                          className="text-6xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400"
-                        >
-                          {currentPatient.name || currentPatient.fullName || 'Patient'}
-                        </motion.h2>
-                        
-                        {/* Time */}
-                        {currentPatient.appointmentTime && (
-                          <div className="inline-flex items-center space-x-3 px-5 py-2 backdrop-blur-xl bg-white/10 rounded-full border border-white/20">
-                            <Clock className="h-5 w-5 text-cyan-400" />
-                            <span className="text-xl text-white font-semibold">
-                              {new Date(currentPatient.appointmentTime).toLocaleTimeString('fr-FR', {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}
-                            </span>
-                          </div>
-                        )}
-                      </motion.div>
-                    ) : (
-                      <motion.div
-                        key="no-patient"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="text-center"
-                      >
-                        <Users className="h-32 w-32 text-white/20 mx-auto mb-4" />
-                        <p className="text-4xl text-white/60 font-medium">
-                          Aucune consultation
-                        </p>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-
-          {/* BOTTOM BANNER AD SPACE */}
+          {/* BOTTOM BANNER AD SPACE - 50% height */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="backdrop-blur-xl bg-gradient-to-r from-purple-500/20 to-cyan-500/20 rounded-2xl border border-white/20 overflow-hidden"
-            style={{ height: '15%' }}
+            className="flex-1 backdrop-blur-xl bg-gradient-to-r from-purple-500/20 to-cyan-500/20 rounded-2xl border border-white/20 overflow-hidden"
           >
             <AdDisplay ads={bottomAds} currentIndex={currentBottomAdIndex} position="bottom" />
           </motion.div>
