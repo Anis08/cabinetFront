@@ -30,7 +30,10 @@ import {
   FileImage,
   Edit,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  CalendarCheck,
+  CalendarX,
+  TrendingUp as TrendingUpIcon
 } from 'lucide-react';
 import BiologicalDataSection from '../components/Patients/BiologicalDataSection';
 import {
@@ -357,6 +360,26 @@ const PatientProfile: React.FC = () => {
     return age;
   }
 
+  // Calculate consultation statistics
+  const getConsultationStats = () => {
+    if (!patient?.rendezVous) {
+      return {
+        total: 0,
+        completed: 0,
+        missed: 0
+      };
+    }
+
+    const completed = patient.rendezVous.filter(rdv => rdv.status === 'Terminé').length;
+    const missed = patient.rendezVous.filter(rdv => rdv.status === 'Manqué').length;
+    
+    return {
+      total: patient.rendezVous.length,
+      completed: completed,
+      missed: missed
+    };
+  };
+
 
 
   useEffect(() => {
@@ -666,6 +689,68 @@ const PatientProfile: React.FC = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Consultation Statistics */}
+        <div className="mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Total Consultations */}
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardContent className="py-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl">
+                      <CalendarCheck className="w-8 h-8 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500 font-medium mb-1">Total Consultations</p>
+                      <p className="text-3xl font-bold text-gray-800">
+                        {getConsultationStats().total}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Completed Consultations */}
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardContent className="py-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-xl">
+                      <CheckCircle className="w-8 h-8 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500 font-medium mb-1">Consultations Terminées</p>
+                      <p className="text-3xl font-bold text-gray-800">
+                        {getConsultationStats().completed}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Missed Appointments */}
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardContent className="py-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="p-4 bg-gradient-to-br from-red-50 to-red-100 rounded-xl">
+                      <CalendarX className="w-8 h-8 text-red-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500 font-medium mb-1">Rendez-vous Manqués</p>
+                      <p className="text-3xl font-bold text-gray-800">
+                        {getConsultationStats().missed}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
 
         {/* Vital Signs */}
         <div className="mb-8">
