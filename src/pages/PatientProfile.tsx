@@ -27,7 +27,8 @@ import {
   Download,
   Plus,
   Trash2,
-  FileImage
+  FileImage,
+  Edit
 } from 'lucide-react';
 import BiologicalDataSection from '../components/Patients/BiologicalDataSection';
 import {
@@ -776,75 +777,105 @@ const PatientProfile: React.FC = () => {
           </Card>
         </div>
 
-        {/* Biological Data Section - New Component */}
+        {/* Biological Data Section - Purple Theme with Tables */}
         <BiologicalDataSection patientId={patientId} />
 
-        {/* Examens Complémentaires Section */}
+        {/* Visual Separator */}
+        <div className="mb-8 flex items-center">
+          <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
+          <div className="px-6 py-2 bg-gradient-to-r from-orange-100 to-amber-100 rounded-full border-2 border-orange-300">
+            <span className="text-sm font-bold text-orange-700">Section Imagerie & Examens Spécialisés</span>
+          </div>
+          <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
+        </div>
+
+        {/* Examens Complémentaires Section - Orange Theme with Visual Cards */}
         <div className="mb-8">
-          <Card>
-            <CardHeader className="bg-gradient-to-r from-blue-500 to-purple-500">
+          <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl shadow-lg border-2 border-orange-200 overflow-hidden">
+            {/* Header with Orange gradient */}
+            <div className="bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 px-6 py-5">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-white flex items-center gap-2">
-                  <FileText className="w-6 h-6" />
-                  Examens Complémentaires
-                </CardTitle>
-                <Button
-                  variant="primary"
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">
+                    <FileImage className="w-7 h-7 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-white">Examens Complémentaires</h3>
+                    <p className="text-orange-100 text-sm mt-0.5">Imagerie médicale et analyses spécialisées</p>
+                  </div>
+                </div>
+                <button
                   onClick={handleAddExam}
-                  className="bg-white text-blue-600 hover:bg-gray-100"
+                  className="bg-white text-orange-600 px-5 py-2.5 rounded-xl font-semibold hover:bg-orange-50 transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-xl"
                 >
-                  <Plus className="w-4 h-4" />
+                  <Plus className="w-5 h-5" />
                   Ajouter un examen
-                </Button>
+                </button>
               </div>
-            </CardHeader>
-            <CardContent className="p-6">
+            </div>
+            {/* Content Area */}
+            <div className="p-8">
               {exams.length === 0 ? (
-                <div className="text-center py-12 text-gray-500">
-                  <FileText className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                  <p className="text-lg font-medium">Aucun examen complémentaire</p>
-                  <p className="text-sm mt-2">Cliquez sur "Ajouter un examen" pour commencer</p>
+                <div className="text-center py-16 text-gray-500">
+                  <div className="relative inline-block mb-6">
+                    <div className="absolute inset-0 bg-orange-200 rounded-full blur-2xl opacity-30"></div>
+                    <FileImage className="w-20 h-20 mx-auto text-orange-400 relative" />
+                  </div>
+                  <p className="text-xl font-bold text-gray-700 mb-2">Aucun examen complémentaire</p>
+                  <p className="text-sm text-gray-500 mb-6">Ajoutez des échographies, scanners, IRM et autres examens spécialisés</p>
+                  <button
+                    onClick={handleAddExam}
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl font-semibold hover:shadow-lg transition-all"
+                  >
+                    <Plus className="w-5 h-5" />
+                    Ajouter votre premier examen
+                  </button>
                 </div>
               ) : (
                 <div className="space-y-6">
                   {exams.map((exam) => (
                     <div
                       key={exam.id}
-                      className="border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-shadow bg-gradient-to-br from-white to-gray-50"
+                      className="border-2 border-orange-200 rounded-2xl p-6 hover:shadow-2xl hover:border-orange-300 transition-all duration-300 bg-white"
                     >
-                      {/* Exam Header */}
-                      <div className="flex items-start justify-between mb-4 pb-4 border-b border-gray-200">
+                      {/* Exam Header with Orange theme */}
+                      <div className="flex items-start justify-between mb-5 pb-5 border-b-2 border-orange-100">
                         <div className="flex-1">
-                          <div className="flex items-center space-x-3 mb-2">
-                            <div className="p-2 bg-blue-100 rounded-lg">
-                              <FileText className="w-5 h-5 text-blue-600" />
+                          <div className="flex items-center space-x-3 mb-3">
+                            <div className="p-3 bg-gradient-to-br from-orange-100 to-amber-100 rounded-xl">
+                              <FileImage className="w-6 h-6 text-orange-600" />
                             </div>
-                            <h3 className="text-xl font-bold text-gray-900">{exam.type}</h3>
+                            <div>
+                              <h3 className="text-xl font-bold text-gray-900">{exam.type}</h3>
+                              <div className="flex items-center text-sm text-orange-600 mt-1">
+                                <Calendar className="w-4 h-4 mr-1.5" />
+                                {new Date(exam.date).toLocaleDateString('fr-FR', {
+                                  year: 'numeric',
+                                  month: 'long',
+                                  day: 'numeric'
+                                })}
+                              </div>
+                            </div>
                           </div>
-                          <p className="text-gray-600 mb-2">{exam.description}</p>
-                          <div className="flex items-center text-sm text-gray-500">
-                            <Calendar className="w-4 h-4 mr-2" />
-                            {new Date(exam.date).toLocaleDateString('fr-FR', {
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric'
-                            })}
-                          </div>
+                          <p className="text-gray-700 text-sm leading-relaxed bg-orange-50 px-4 py-3 rounded-lg border-l-4 border-orange-400">
+                            {exam.description}
+                          </p>
                         </div>
                         <button
                           onClick={() => handleDeleteExam(exam.id)}
-                          className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors"
+                          className="text-red-500 hover:bg-red-50 p-2.5 rounded-xl transition-colors ml-4"
+                          title="Supprimer l'examen"
                         >
                           <Trash2 className="w-5 h-5" />
                         </button>
                       </div>
 
-                      {/* Files Section */}
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <h4 className="text-sm font-semibold text-gray-700 flex items-center">
-                            <FileImage className="w-4 h-4 mr-2" />
-                            Fichiers associés ({exam.files.length})
+                      {/* Files Section with Orange theme */}
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between bg-gradient-to-r from-orange-50 to-amber-50 px-4 py-3 rounded-xl border border-orange-200">
+                          <h4 className="text-sm font-bold text-orange-900 flex items-center">
+                            <FileImage className="w-5 h-5 mr-2 text-orange-600" />
+                            Fichiers médicaux ({exam.files.length})
                           </h4>
                           <label className="cursor-pointer">
                             <input
@@ -854,65 +885,69 @@ const PatientProfile: React.FC = () => {
                               onChange={(e) => handleFileUploadForExam(exam.id, e)}
                               disabled={uploadingFile}
                             />
-                            <span className="flex items-center space-x-2 px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm">
+                            <span className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-lg hover:shadow-lg transition-all text-sm font-semibold">
                               <Upload className="w-4 h-4" />
-                              <span>{uploadingFile ? 'Upload...' : 'Uploader un fichier'}</span>
+                              <span>{uploadingFile ? 'Upload en cours...' : 'Ajouter un fichier'}</span>
                             </span>
                           </label>
                         </div>
 
                         {exam.files.length > 0 ? (
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {exam.files.map((file) => (
                               <div
                                 key={file.id}
-                                className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                                className="bg-gradient-to-br from-white to-orange-50 border-2 border-orange-200 rounded-xl p-4 hover:shadow-xl hover:border-orange-300 transition-all duration-200"
                               >
-                                <div className="flex items-start space-x-3">
-                                  <div className="flex-shrink-0">
+                                <div className="flex items-start space-x-3 mb-3">
+                                  <div className="flex-shrink-0 p-2 bg-orange-100 rounded-lg">
                                     {getFileIcon(file.type)}
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium text-gray-900 truncate">
+                                    <p className="text-sm font-bold text-gray-900 truncate" title={file.name}>
                                       {file.name}
                                     </p>
-                                    <p className="text-xs text-gray-500 mt-1">
-                                      {formatFileSize(file.size)}
-                                    </p>
-                                    <p className="text-xs text-gray-400">
-                                      {new Date(file.uploadDate).toLocaleDateString('fr-FR')}
-                                    </p>
+                                    <div className="flex items-center gap-2 mt-1">
+                                      <span className="text-xs font-semibold text-orange-600 bg-orange-100 px-2 py-0.5 rounded">
+                                        {formatFileSize(file.size)}
+                                      </span>
+                                      <span className="text-xs text-gray-500">
+                                        {new Date(file.uploadDate).toLocaleDateString('fr-FR')}
+                                      </span>
+                                    </div>
                                   </div>
                                 </div>
-                                <div className="flex items-center space-x-2 mt-3 pt-3 border-t border-gray-100">
+                                <div className="flex items-center gap-2">
                                   <button
                                     onClick={() => handlePreviewFile(file)}
-                                    className="flex-1 flex items-center justify-center space-x-1 px-2 py-1.5 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors text-xs"
+                                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-all text-xs font-semibold"
                                   >
-                                    <Eye className="w-3 h-3" />
+                                    <Eye className="w-4 h-4" />
                                     <span>Voir</span>
                                   </button>
                                   <button
                                     onClick={() => handleDownloadFile(file)}
-                                    className="flex-1 flex items-center justify-center space-x-1 px-2 py-1.5 bg-green-50 text-green-600 rounded hover:bg-green-100 transition-colors text-xs"
+                                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-all text-xs font-semibold"
                                   >
-                                    <Download className="w-3 h-3" />
+                                    <Download className="w-4 h-4" />
                                     <span>Télécharger</span>
                                   </button>
                                   <button
                                     onClick={() => handleDeleteFile(exam.id, file.id)}
-                                    className="flex items-center justify-center px-2 py-1.5 bg-red-50 text-red-600 rounded hover:bg-red-100 transition-colors"
+                                    className="flex items-center justify-center px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all"
+                                    title="Supprimer"
                                   >
-                                    <Trash2 className="w-3 h-3" />
+                                    <Trash2 className="w-4 h-4" />
                                   </button>
                                 </div>
                               </div>
                             ))}
                           </div>
                         ) : (
-                          <div className="text-center py-6 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-                            <FileText className="w-10 h-10 text-gray-400 mx-auto mb-2" />
-                            <p className="text-sm text-gray-500">Aucun fichier associé</p>
+                          <div className="text-center py-8 bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl border-2 border-dashed border-orange-300">
+                            <FileImage className="w-12 h-12 text-orange-300 mx-auto mb-3" />
+                            <p className="text-sm font-semibold text-orange-700 mb-1">Aucun fichier médical</p>
+                            <p className="text-xs text-orange-600">Cliquez sur "Ajouter un fichier" pour uploader</p>
                           </div>
                         )}
                       </div>
@@ -920,20 +955,22 @@ const PatientProfile: React.FC = () => {
                   ))}
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Add Exam Modal */}
+      {/* Add Exam Modal with Orange theme */}
       {showExamModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" onClick={() => setShowExamModal(false)}>
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full" onClick={(e) => e.stopPropagation()}>
-            {/* Modal Header */}
-            <div className="bg-gradient-to-r from-blue-500 to-purple-500 px-6 py-4 flex items-center justify-between rounded-t-xl">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden border-4 border-orange-200" onClick={(e) => e.stopPropagation()}>
+            {/* Modal Header with Orange gradient */}
+            <div className="bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 px-6 py-5 flex items-center justify-between">
               <h2 className="text-2xl font-bold text-white flex items-center">
-                <Plus className="w-6 h-6 mr-3" />
-                {currentExam ? 'Modifier l\'examen' : 'Ajouter un examen complémentaire'}
+                <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl mr-3">
+                  <Plus className="w-6 h-6" />
+                </div>
+                {currentExam ? 'Modifier l\'examen' : 'Nouvel Examen Complémentaire'}
               </h2>
               <button
                 onClick={() => setShowExamModal(false)}
@@ -943,19 +980,20 @@ const PatientProfile: React.FC = () => {
               </button>
             </div>
 
-            {/* Modal Content */}
-            <div className="p-6 space-y-4">
+            {/* Modal Content with Orange accents */}
+            <div className="p-6 space-y-5 bg-gradient-to-br from-white to-orange-50">
               {/* Exam Type */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-sm font-bold text-orange-900 mb-2 flex items-center">
+                  <FileImage className="w-4 h-4 mr-2 text-orange-600" />
                   Type d'examen *
                 </label>
                 <select
                   value={examForm.type}
                   onChange={(e) => setExamForm({ ...examForm, type: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border-2 border-orange-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white font-medium"
                 >
-                  <option value="">Sélectionner un type</option>
+                  <option value="">Sélectionner un type d'examen</option>
                   {examTypes.map((type) => (
                     <option key={type} value={type}>{type}</option>
                   ))}
@@ -964,64 +1002,80 @@ const PatientProfile: React.FC = () => {
 
               {/* Date */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-sm font-bold text-orange-900 mb-2 flex items-center">
+                  <Calendar className="w-4 h-4 mr-2 text-orange-600" />
                   Date de l'examen *
                 </label>
                 <input
                   type="date"
                   value={examForm.date}
                   onChange={(e) => setExamForm({ ...examForm, date: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border-2 border-orange-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white font-medium"
                 />
               </div>
 
               {/* Description */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-sm font-bold text-orange-900 mb-2 flex items-center">
+                  <FileText className="w-4 h-4 mr-2 text-orange-600" />
                   Description / Résultats *
                 </label>
                 <textarea
                   value={examForm.description}
                   onChange={(e) => setExamForm({ ...examForm, description: e.target.value })}
                   rows={4}
-                  placeholder="Décrivez les résultats de l'examen, observations importantes, etc."
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  placeholder="Décrivez les résultats de l'examen, observations importantes, conclusions du radiologue, etc."
+                  className="w-full px-4 py-3 border-2 border-orange-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 resize-none bg-white font-medium"
                 />
               </div>
 
-              <p className="text-sm text-gray-500 italic">
-                * Champs obligatoires. Vous pourrez ajouter des fichiers après la création de l'examen.
-              </p>
+              <div className="bg-orange-50 border-l-4 border-orange-400 px-4 py-3 rounded-r-lg">
+                <p className="text-sm text-orange-800">
+                  <strong>Note :</strong> Vous pourrez ajouter des fichiers médicaux (PDF, images, DICOM) après la création de l'examen.
+                </p>
+              </div>
             </div>
 
-            {/* Modal Footer */}
-            <div className="bg-gray-50 px-6 py-4 flex justify-end space-x-3 rounded-b-xl">
+            {/* Modal Footer with Orange buttons */}
+            <div className="bg-gradient-to-r from-orange-50 to-amber-50 px-6 py-4 flex justify-end space-x-3 border-t-2 border-orange-200">
               <button
                 onClick={() => setShowExamModal(false)}
-                className="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                className="px-6 py-2.5 bg-gray-500 text-white rounded-xl font-semibold hover:bg-gray-600 transition-colors"
               >
                 Annuler
               </button>
               <button
                 onClick={handleSaveExam}
-                className="px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg hover:shadow-lg transition-all"
+                className="px-6 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl font-semibold hover:shadow-lg transition-all flex items-center gap-2"
               >
-                {currentExam ? 'Modifier' : 'Ajouter'}
+                {currentExam ? (
+                  <>
+                    <Edit className="w-4 h-4" />
+                    Modifier l'examen
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4" />
+                    Créer l'examen
+                  </>
+                )}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* File Preview Modal */}
+      {/* File Preview Modal with Orange theme */}
       {showFilePreview && selectedPreviewFile && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50" onClick={() => setShowFilePreview(false)}>
-          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
-            {/* Modal Header */}
-            <div className="bg-gradient-to-r from-blue-500 to-purple-500 px-6 py-4 flex items-center justify-between">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden border-4 border-orange-200" onClick={(e) => e.stopPropagation()}>
+            {/* Modal Header with Orange gradient */}
+            <div className="bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 px-6 py-4 flex items-center justify-between">
               <h2 className="text-xl font-bold text-white flex items-center">
-                <Eye className="w-6 h-6 mr-3" />
-                {selectedPreviewFile.name}
+                <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl mr-3">
+                  <Eye className="w-6 h-6" />
+                </div>
+                <span className="truncate">{selectedPreviewFile.name}</span>
               </h2>
               <button
                 onClick={() => setShowFilePreview(false)}
@@ -1062,15 +1116,20 @@ const PatientProfile: React.FC = () => {
               )}
             </div>
 
-            {/* Modal Footer */}
-            <div className="bg-gray-50 px-6 py-4 flex justify-between items-center border-t border-gray-200">
-              <div className="text-sm text-gray-600">
-                <span className="font-semibold">Taille:</span> {formatFileSize(selectedPreviewFile.size)} •{' '}
-                <span className="font-semibold">Date:</span> {new Date(selectedPreviewFile.uploadDate).toLocaleDateString('fr-FR')}
+            {/* Modal Footer with Orange theme */}
+            <div className="bg-gradient-to-r from-orange-50 to-amber-50 px-6 py-4 flex justify-between items-center border-t-2 border-orange-200">
+              <div className="text-sm text-orange-900">
+                <span className="font-bold">Taille:</span>{' '}
+                <span className="bg-orange-100 px-2 py-1 rounded text-orange-700">{formatFileSize(selectedPreviewFile.size)}</span>
+                <span className="mx-2">•</span>
+                <span className="font-bold">Date:</span>{' '}
+                <span className="bg-orange-100 px-2 py-1 rounded text-orange-700">
+                  {new Date(selectedPreviewFile.uploadDate).toLocaleDateString('fr-FR')}
+                </span>
               </div>
               <button
                 onClick={() => handleDownloadFile(selectedPreviewFile)}
-                className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center space-x-2"
+                className="px-6 py-2.5 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl hover:shadow-lg transition-all flex items-center space-x-2 font-semibold"
               >
                 <Download className="w-5 h-5" />
                 <span>Télécharger</span>
