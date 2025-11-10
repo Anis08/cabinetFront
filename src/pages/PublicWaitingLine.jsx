@@ -9,6 +9,12 @@ const PublicWaitingLine = () => {
   const [waitingPatients, setWaitingPatients] = useState([])
   const [loading, setLoading] = useState(true)
   const [currentTime, setCurrentTime] = useState(new Date())
+  
+  // Ads state
+  const [topAds, setTopAds] = useState([])
+  const [bottomAds, setBottomAds] = useState([])
+  const [currentTopAdIndex, setCurrentTopAdIndex] = useState(0)
+  const [currentBottomAdIndex, setCurrentBottomAdIndex] = useState(0)
 
   // Get WebSocket URL from baseURL (replace http with ws)
   const getSocketURL = () => {
@@ -38,9 +44,41 @@ const PublicWaitingLine = () => {
     }
   }
 
+  // Fetch active ads
+  const fetchActiveAds = async () => {
+    try {
+      const response = await fetch(`${baseURL}/public/ads/active`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        const ads = data.ads || []
+        
+        // Filter by date range
+        const now = new Date()
+        const activeAds = ads.filter(ad => {
+          const from = new Date(ad.dateFrom)
+          const to = new Date(ad.dateTo)
+          return ad.active && now >= from && now <= to
+        })
+        
+        // Separate by position
+        setTopAds(activeAds.filter(ad => ad.position === 'top'))
+        setBottomAds(activeAds.filter(ad => ad.position === 'bottom'))
+      }
+    } catch (error) {
+      console.error('Error fetching ads:', error)
+    }
+  }
+
   // Setup WebSocket connection
   useEffect(() => {
     fetchWaitingLine()
+    fetchActiveAds()
 
     // Connect to WebSocket
     const socket = io(getSocketURL(), {
@@ -65,6 +103,12 @@ const PublicWaitingLine = () => {
       setWaitingPatients(data.waiting || [])
     })
 
+    // Listen for ads updates
+    socket.on('ads-update', () => {
+      console.log('Ads updated, reloading...')
+      fetchActiveAds()
+    })
+
     // Cleanup on unmount
     return () => {
       socket.disconnect()
@@ -79,6 +123,34 @@ const PublicWaitingLine = () => {
 
     return () => clearInterval(timer)
   }, [])
+
+  // Rotate top ads
+  useEffect(() => {
+    if (topAds.length === 0) return
+
+    const currentAd = topAds[currentTopAdIndex]
+    const duration = (currentAd?.duration || 5) * 1000
+
+    const timer = setTimeout(() => {
+      setCurrentTopAdIndex((prev) => (prev + 1) % topAds.length)
+    }, duration)
+
+    return () => clearTimeout(timer)
+  }, [currentTopAdIndex, topAds])
+
+  // Rotate bottom ads
+  useEffect(() => {
+    if (bottomAds.length === 0) return
+
+    const currentAd = bottomAds[currentBottomAdIndex]
+    const duration = (currentAd?.duration || 5) * 1000
+
+    const timer = setTimeout(() => {
+      setCurrentBottomAdIndex((prev) => (prev + 1) % bottomAds.length)
+    }, duration)
+
+    return () => clearTimeout(timer)
+  }, [currentBottomAdIndex, bottomAds])
 
   const formatTime = (date) => {
     return date.toLocaleTimeString('fr-FR', {
@@ -95,6 +167,51 @@ const PublicWaitingLine = () => {
       month: 'long',
       year: 'numeric',
     })
+  }
+
+  // Ad display component
+  const AdDisplay = ({ ads, currentIndex, position }) => {
+    if (ads.length === 0) {
+      return (
+        <div className="h-full flex items-center justify-center">
+          <div className="text-center">
+            <Sparkles className="h-12 w-12 text-white/30 mx-auto mb-2" />
+            <p className="text-lg font-semibold text-white/50">Espace Publicitaire</p>
+          </div>
+        </div>
+      )
+    }
+
+    const currentAd = ads[currentIndex]
+
+    return (
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={`${position}-${currentAd.id}-${currentIndex}`}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          transition={{ duration: 0.5 }}
+          className="h-full w-full"
+        >
+          {currentAd.type === 'image' ? (
+            <img
+              src={currentAd.fileUrl}
+              alt={currentAd.title}
+              className="w-full h-full object-cover rounded-2xl"
+            />
+          ) : (
+            <video
+              src={currentAd.fileUrl}
+              autoPlay
+              muted
+              loop
+              className="w-full h-full object-cover rounded-2xl"
+            />
+          )}
+        </motion.div>
+      </AnimatePresence>
+    )
   }
 
   if (loading) {
@@ -259,15 +376,7 @@ const PublicWaitingLine = () => {
             className="backdrop-blur-xl bg-gradient-to-r from-pink-500/20 to-orange-500/20 rounded-2xl border border-white/20 overflow-hidden mb-4"
             style={{ height: '15%' }}
           >
-            <div className="h-full flex items-center justify-center relative">
-              {/* Placeholder for banner ad */}
-              <div className="text-center">
-                <Sparkles className="h-12 w-12 text-pink-400 mx-auto mb-2" />
-                <p className="text-xl font-semibold text-white/80">Espace Publicitaire</p>
-                <p className="text-sm text-white/60">728 x 90px</p>
-              </div>
-              {/* You can replace this with actual ad content */}
-            </div>
+            <AdDisplay ads={topAds} currentIndex={currentTopAdIndex} position="top" />
           </motion.div>
 
           {/* ACTIVE PATIENT - Center */}
@@ -381,15 +490,7 @@ const PublicWaitingLine = () => {
             className="backdrop-blur-xl bg-gradient-to-r from-purple-500/20 to-cyan-500/20 rounded-2xl border border-white/20 overflow-hidden"
             style={{ height: '15%' }}
           >
-            <div className="h-full flex items-center justify-center relative">
-              {/* Placeholder for banner ad */}
-              <div className="text-center">
-                <Sparkles className="h-12 w-12 text-cyan-400 mx-auto mb-2" />
-                <p className="text-xl font-semibold text-white/80">Espace Publicitaire</p>
-                <p className="text-sm text-white/60">728 x 90px</p>
-              </div>
-              {/* You can replace this with actual ad content */}
-            </div>
+            <AdDisplay ads={bottomAds} currentIndex={currentBottomAdIndex} position="bottom" />
           </motion.div>
         </div>
       </div>

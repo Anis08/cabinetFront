@@ -23,6 +23,7 @@ import LoggedReirect from './wrappers/LoggedRedirect';
 import DataProvider from './store/DataProvider';
 import PatientProfile from './pages/PatientProfile';
 import PublicWaitingLine from './pages/PublicWaitingLine';
+import AdsManagement from './pages/AdsManagement';
 
 // Page de test simple
 const TestPage = () => (
@@ -135,6 +136,7 @@ function AppSimple() {
                               <Route path="statistics" element={<StatisticsSimple />} />
                               <Route path="statistics-advanced" element={<StatisticsAdvanced />} />
                               <Route path="billing" element={<BillingSimple />} />
+                              <Route path="ads-management" element={<AdsManagement />} />
                               <Route path="patient-profile/:patientId" element={<PatientProfile />} />
                               <Route path="*" element={<Navigate to="/home/dashboard" replace />} />
                             </Routes>

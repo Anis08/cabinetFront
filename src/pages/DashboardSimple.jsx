@@ -1,15 +1,28 @@
 import React from 'react'
 import { motion } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
 import { 
   Users, 
   Clock, 
   Euro, 
   TrendingUp,
   Activity,
-  Calendar
+  Calendar,
+  MonitorPlay,
+  ExternalLink
 } from 'lucide-react'
 
 const DashboardSimple = () => {
+  const navigate = useNavigate()
+  
+  const openWaitingLine = () => {
+    window.open('/waiting-line', '_blank')
+  }
+
+  const goToAdsManagement = () => {
+    navigate('/home/ads-management')
+  }
+
   // Données mockées simples
   const mockKPIs = {
     patientsToday: 12,
@@ -142,6 +155,39 @@ const DashboardSimple = () => {
           <button className="flex items-center space-x-3 p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
             <Calendar className="h-5 w-5 text-green-600" />
             <span className="font-medium">Planifier RDV</span>
+          </button>
+        </div>
+      </motion.div>
+
+      {/* Écran d'attente et Publicités */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.25 }}
+        className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-6"
+      >
+        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+          <MonitorPlay className="h-5 w-5 mr-2 text-purple-600" />
+          Écran d'Attente
+        </h3>
+        <p className="text-gray-600 text-sm mb-4">
+          Affichez la file d'attente sur un écran dans votre salle d'attente et gérez les publicités
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <button
+            onClick={openWaitingLine}
+            className="flex items-center justify-center space-x-3 p-4 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-colors shadow-md"
+          >
+            <ExternalLink className="h-5 w-5" />
+            <span className="font-medium">Ouvrir l'Écran d'Attente</span>
+          </button>
+          
+          <button
+            onClick={goToAdsManagement}
+            className="flex items-center justify-center space-x-3 p-4 rounded-lg bg-purple-500 text-white hover:bg-purple-600 transition-colors shadow-md"
+          >
+            <MonitorPlay className="h-5 w-5" />
+            <span className="font-medium">Gérer les Publicités</span>
           </button>
         </div>
       </motion.div>

@@ -11,7 +11,8 @@ import {
   Euro,
   Calendar,
   Settings,
-  User
+  User,
+  Monitor
 } from 'lucide-react'
 
 const LayoutSimple = ({ children }) => {
@@ -66,6 +67,12 @@ const LayoutSimple = ({ children }) => {
       href: '/home/calendar',
       icon: Calendar,
       current: location.pathname === '/home/calendar'
+    },
+    {
+      name: 'Publicités',
+      href: '/home/ads-management',
+      icon: Monitor,
+      current: location.pathname === '/home/ads-management'
     }
   ]
 
