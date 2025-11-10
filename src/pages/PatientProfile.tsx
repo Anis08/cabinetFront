@@ -20,7 +20,10 @@ import {
   Thermometer,
   AlertCircle,
   CheckCircle,
-  AlertTriangle
+  AlertTriangle,
+  History,
+  X,
+  Eye
 } from 'lucide-react';
 import BiologicalDataSection from '../components/Patients/BiologicalDataSection';
 import {
@@ -289,6 +292,7 @@ const PatientProfile: React.FC = () => {
   const { patientId } = useParams();
   const [patient, setPatient] = useState(null);
   const [nextAppointment, setNextAppointment] = useState(null)
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
   const { logout, refresh } = useAuth();
 
 
@@ -485,7 +489,16 @@ const PatientProfile: React.FC = () => {
 
         {/* Vital Signs */}
         <div className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Constantes Vitales</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-bold text-gray-800">Constantes Vitales</h2>
+            <button
+              onClick={() => setShowHistoryModal(true)}
+              className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg hover:from-blue-600 hover:to-purple-600 transition-all shadow-md hover:shadow-lg"
+            >
+              <History className="w-4 h-4" />
+              <span>Voir l'Historique</span>
+            </button>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             {vitalSigns.map((vital, index) => (
               <VitalSignCard key={index} vital={vital} />
@@ -607,6 +620,192 @@ const PatientProfile: React.FC = () => {
         {/* Biological Data Section - New Component */}
         <BiologicalDataSection patientId={patientId} />
       </div>
+
+      {/* History Modal */}
+      {showHistoryModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" onClick={() => setShowHistoryModal(false)}>
+          <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-blue-500 to-purple-500 px-6 py-4 flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-white flex items-center">
+                <History className="w-6 h-6 mr-3" />
+                Historique des Constantes Vitales
+              </h2>
+              <button
+                onClick={() => setShowHistoryModal(false)}
+                className="text-white hover:bg-white/20 rounded-full p-2 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
+              {patient?.rendezVous && patient.rendezVous.length > 0 ? (
+                <div className="space-y-4">
+                  {[...patient.rendezVous].reverse().map((consultation, index) => {
+                    const hasVitals = consultation.paSystolique || consultation.paDiastolique || 
+                                     consultation.pulse || consultation.poids || 
+                                     consultation.imc || consultation.pcm;
+
+                    if (!hasVitals) return null;
+
+                    return (
+                      <div
+                        key={index}
+                        className="bg-gradient-to-br from-gray-50 to-blue-50 border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-shadow"
+                      >
+                        {/* Date Header */}
+                        <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-200">
+                          <div className="flex items-center space-x-3">
+                            <div className="p-2 bg-blue-500 rounded-lg">
+                              <Calendar className="w-5 h-5 text-white" />
+                            </div>
+                            <div>
+                              <h3 className="text-lg font-bold text-gray-900">
+                                {new Date(consultation.date).toLocaleDateString('fr-FR', {
+                                  weekday: 'long',
+                                  year: 'numeric',
+                                  month: 'long',
+                                  day: 'numeric'
+                                })}
+                              </h3>
+                              <p className="text-sm text-gray-600">
+                                {new Date(consultation.date).toLocaleTimeString('fr-FR', {
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </p>
+                            </div>
+                          </div>
+                          {index === 0 && (
+                            <span className="px-3 py-1 bg-green-100 text-green-700 text-sm font-medium rounded-full">
+                              Dernière consultation
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Vital Signs Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {/* Blood Pressure */}
+                          {(consultation.paSystolique || consultation.paDiastolique) && (
+                            <div className="bg-white rounded-lg p-4 border border-red-100">
+                              <div className="flex items-center space-x-3 mb-2">
+                                <div className="p-2 bg-red-50 rounded-lg">
+                                  <Heart className="w-5 h-5 text-red-500" />
+                                </div>
+                                <span className="text-sm font-medium text-gray-600">Pression Artérielle</span>
+                              </div>
+                              <p className="text-2xl font-bold text-gray-900">
+                                {consultation.paSystolique}/{consultation.paDiastolique}
+                                <span className="text-sm font-normal text-gray-500 ml-2">mmHg</span>
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Heart Rate */}
+                          {consultation.pulse && (
+                            <div className="bg-white rounded-lg p-4 border border-pink-100">
+                              <div className="flex items-center space-x-3 mb-2">
+                                <div className="p-2 bg-pink-50 rounded-lg">
+                                  <Activity className="w-5 h-5 text-pink-500" />
+                                </div>
+                                <span className="text-sm font-medium text-gray-600">Rythme Cardiaque</span>
+                              </div>
+                              <p className="text-2xl font-bold text-gray-900">
+                                {consultation.pulse}
+                                <span className="text-sm font-normal text-gray-500 ml-2">bpm</span>
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Weight */}
+                          {consultation.poids && (
+                            <div className="bg-white rounded-lg p-4 border border-blue-100">
+                              <div className="flex items-center space-x-3 mb-2">
+                                <div className="p-2 bg-blue-50 rounded-lg">
+                                  <Scale className="w-5 h-5 text-blue-500" />
+                                </div>
+                                <span className="text-sm font-medium text-gray-600">Poids</span>
+                              </div>
+                              <p className="text-2xl font-bold text-gray-900">
+                                {consultation.poids}
+                                <span className="text-sm font-normal text-gray-500 ml-2">kg</span>
+                              </p>
+                            </div>
+                          )}
+
+                          {/* BMI */}
+                          {consultation.imc && (
+                            <div className="bg-white rounded-lg p-4 border border-purple-100">
+                              <div className="flex items-center space-x-3 mb-2">
+                                <div className="p-2 bg-purple-50 rounded-lg">
+                                  <Activity className="w-5 h-5 text-purple-500" />
+                                </div>
+                                <span className="text-sm font-medium text-gray-600">IMC</span>
+                              </div>
+                              <p className="text-2xl font-bold text-gray-900">
+                                {consultation.imc}
+                                <span className="text-sm font-normal text-gray-500 ml-2">kg/m²</span>
+                              </p>
+                            </div>
+                          )}
+
+                          {/* PCM */}
+                          {consultation.pcm && (
+                            <div className="bg-white rounded-lg p-4 border border-indigo-100">
+                              <div className="flex items-center space-x-3 mb-2">
+                                <div className="p-2 bg-indigo-50 rounded-lg">
+                                  <Scale className="w-5 h-5 text-indigo-500" />
+                                </div>
+                                <span className="text-sm font-medium text-gray-600">PCM</span>
+                              </div>
+                              <p className="text-2xl font-bold text-gray-900">
+                                {consultation.pcm}
+                                <span className="text-sm font-normal text-gray-500 ml-2">kg</span>
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Note if available */}
+                        {consultation.note && (
+                          <div className="mt-4 p-4 bg-blue-50 border-l-4 border-blue-500 rounded-r-lg">
+                            <p className="text-sm text-gray-700">
+                              <span className="font-semibold">Note: </span>
+                              {consultation.note}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <History className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                    Aucun historique disponible
+                  </h3>
+                  <p className="text-gray-500">
+                    Les constantes vitales des consultations terminées apparaîtront ici.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-gray-50 px-6 py-4 flex justify-end border-t border-gray-200">
+              <button
+                onClick={() => setShowHistoryModal(false)}
+                className="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
