@@ -12,7 +12,8 @@ import {
   Calendar,
   Settings,
   User,
-  Monitor
+  Monitor,
+  FileText
 } from 'lucide-react'
 
 const LayoutSimple = ({ children }) => {
