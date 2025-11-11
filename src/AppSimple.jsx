@@ -138,6 +138,7 @@ function AppSimple() {
                               <Route path="billing" element={<BillingSimple />} />
                               <Route path="ads-management" element={<AdsManagement />} />
                               <Route path="patient-profile/:patientId" element={<PatientProfile />} />
+                              <Route path="ordonnances" element={<Ordonnances />} />
                               <Route path="*" element={<Navigate to="/home/dashboard" replace />} />
                             </Routes>
                           </LayoutSimple>
