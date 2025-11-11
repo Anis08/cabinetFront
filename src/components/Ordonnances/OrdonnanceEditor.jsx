@@ -1,10 +1,30 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Plus, Trash2, Save, Printer, FileText } from 'lucide-react'
+import { X, Plus, Trash2, Save, Printer, FileText, Settings as SettingsIcon, Download } from 'lucide-react'
+import PrescriptionTemplateSettings from './PrescriptionTemplateSettings'
+import PrescriptionPreview from './PrescriptionPreview'
+import { exportPrescriptionToPDF, printPrescription } from '../../utils/pdfExport'
 
 const OrdonnanceEditor = ({ isOpen, onClose, patient, onSave }) => {
   const [medicaments, setMedicaments] = useState([])
   const [observations, setObservations] = useState('')
+  const [showSettings, setShowSettings] = useState(false)
+  const [template, setTemplate] = useState({
+    logo: '',
+    doctorName: localStorage.getItem('name')?.replace(/"/g, '') || '',
+    specialty: 'Médecin Généraliste',
+    address: '',
+    phone: '',
+    email: '',
+    clinicName: '',
+    patientLayout: 'header',
+    showPatientName: true,
+    showPatientAge: true,
+    showPatientGender: true,
+    showPatientDateOfBirth: true,
+    headerColor: '#1e40af',
+    accentColor: '#3b82f6'
+  })
   const [currentMed, setCurrentMed] = useState({
     nom: '',
     dosage: '',
@@ -14,6 +34,18 @@ const OrdonnanceEditor = ({ isOpen, onClose, patient, onSave }) => {
     momentPrise: 'Après les repas',
     instructions: ''
   })
+
+  // Load saved template on mount
+  useEffect(() => {
+    const savedTemplate = localStorage.getItem('prescriptionTemplate')
+    if (savedTemplate) {
+      try {
+        setTemplate(JSON.parse(savedTemplate))
+      } catch (e) {
+        console.error('Error loading template:', e)
+      }
+    }
+  }, [])
 
   const formes = ['Comprimé', 'Gélule', 'Sirop', 'Suppositoire', 'Injectable', 'Crème', 'Pommade']
   const momentsPrise = ['Avant les repas', 'Après les repas', 'Pendant les repas', 'À jeun', 'Au coucher', 'Matin et soir']
@@ -51,14 +83,39 @@ const OrdonnanceEditor = ({ isOpen, onClose, patient, onSave }) => {
       patientName: patient.fullName,
       date: new Date().toISOString(),
       medicaments,
-      observations
+      observations,
+      template // Save template configuration with prescription
     }
 
     onSave(ordonnance)
   }
 
+  const handleSaveTemplate = (newTemplate) => {
+    setTemplate(newTemplate)
+    setShowSettings(false)
+  }
+
   const handlePrint = () => {
-    window.print()
+    printPrescription()
+  }
+
+  const handleExportPDF = async () => {
+    const prescriptionData = {
+      patientId: patient._id || patient.id,
+      patientName: patient.fullName,
+      date: new Date().toISOString(),
+      medicaments,
+      observations,
+      template
+    }
+
+    const result = await exportPrescriptionToPDF(prescriptionData)
+    
+    if (result.success) {
+      alert(`PDF exporté avec succès: ${result.filename}`)
+    } else {
+      alert(`Erreur lors de l'export PDF: ${result.error}`)
+    }
   }
 
   if (!isOpen) return null
@@ -78,18 +135,40 @@ const OrdonnanceEditor = ({ isOpen, onClose, patient, onSave }) => {
               <FileText className="w-6 h-6 text-blue-600" />
               Nouvelle Ordonnance
             </h2>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <X className="w-6 h-6 text-gray-600" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowSettings(!showSettings)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                  showSettings 
+                    ? 'bg-blue-600 text-white' 
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+                title="Paramètres d'ordonnance"
+              >
+                <SettingsIcon className="w-4 h-4" />
+                <span className="text-sm font-medium">Paramètres</span>
+              </button>
+              <button
+                onClick={onClose}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="w-6 h-6 text-gray-600" />
+              </button>
+            </div>
           </div>
 
           {/* Content - Split View */}
           <div className="flex-1 flex overflow-hidden">
-            {/* Left: Form */}
+            {/* Left: Form or Settings */}
             <div className="w-1/2 overflow-y-auto p-6 border-r border-gray-200">
+              {showSettings ? (
+                <PrescriptionTemplateSettings 
+                  template={template}
+                  onSave={handleSaveTemplate}
+                  onClose={() => setShowSettings(false)}
+                />
+              ) : (
+                <div>
               {/* Patient Info */}
               <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
                 <h3 className="font-semibold text-gray-800 mb-2">Patient</h3>
@@ -227,86 +306,19 @@ const OrdonnanceEditor = ({ isOpen, onClose, patient, onSave }) => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
+                </div>
+              )}
             </div>
 
             {/* Right: Preview */}
             <div className="w-1/2 overflow-y-auto p-6 bg-gray-50">
-              <div className="bg-white rounded-lg shadow-lg p-8 max-w-2xl mx-auto">
-                {/* Header */}
-                <div className="border-b-2 border-gray-300 pb-4 mb-6">
-                  <h3 className="text-xl font-bold text-gray-800">Dr. {localStorage.getItem('name')?.replace(/"/g, '')}</h3>
-                  <p className="text-sm text-gray-600">Médecin Généraliste</p>
-                </div>
-
-                {/* Patient Info */}
-                <div className="mb-6">
-                  <p className="text-sm text-gray-600">Patient: <span className="font-semibold text-gray-800">{patient?.fullName}</span></p>
-                  <p className="text-sm text-gray-600">Date: <span className="font-semibold text-gray-800">{new Date().toLocaleDateString('fr-FR')}</span></p>
-                </div>
-
-                {/* Prescription Symbol */}
-                <div className="mb-4">
-                  <span className="text-4xl font-serif text-gray-700">℞</span>
-                </div>
-
-                {/* Medications List */}
-                <div className="mb-6 space-y-4">
-                  {medicaments.length === 0 ? (
-                    <p className="text-gray-400 italic text-center py-8">
-                      Aucun médicament ajouté
-                    </p>
-                  ) : (
-                    medicaments.map((med, index) => (
-                      <div key={med.id} className="relative border-l-4 border-blue-500 pl-4 py-2">
-                        <button
-                          onClick={() => handleRemoveMedicament(med.id)}
-                          className="absolute -right-2 -top-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                        <p className="font-semibold text-gray-800">
-                          {index + 1}. {med.nom} {med.dosage}
-                        </p>
-                        <p className="text-sm text-gray-700">
-                          {med.frequence}
-                        </p>
-                        <p className="text-sm text-gray-700">
-                          Durée: {med.duree}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          {med.momentPrise}
-                        </p>
-                        {med.instructions && (
-                          <p className="text-sm text-gray-600 italic mt-1">
-                            {med.instructions}
-                          </p>
-                        )}
-                      </div>
-                    ))
-                  )}
-                </div>
-
-                {/* Observations */}
-                {observations && (
-                  <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <p className="text-sm font-semibold text-gray-800 mb-2">Observations:</p>
-                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{observations}</p>
-                  </div>
-                )}
-
-                {/* Footer */}
-                <div className="border-t-2 border-gray-300 pt-4 mt-8">
-                  <div className="flex justify-between items-end">
-                    <div className="text-sm text-gray-600">
-                      <p>Date: {new Date().toLocaleDateString('fr-FR')}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm text-gray-600">Signature</p>
-                      <p className="font-semibold text-gray-800 mt-8">Dr. {localStorage.getItem('name')?.replace(/"/g, '')}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <PrescriptionPreview 
+                template={template}
+                patient={patient}
+                medicaments={medicaments}
+                observations={observations}
+                onRemoveMed={showSettings ? null : handleRemoveMedicament}
+              />
             </div>
           </div>
 
@@ -320,9 +332,19 @@ const OrdonnanceEditor = ({ isOpen, onClose, patient, onSave }) => {
             </button>
             <div className="flex gap-3">
               <button
+                onClick={handleExportPDF}
+                disabled={medicaments.length === 0}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Exporter en PDF"
+              >
+                <Download className="w-4 h-4" />
+                PDF
+              </button>
+              <button
                 onClick={handlePrint}
                 disabled={medicaments.length === 0}
                 className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Imprimer"
               >
                 <Printer className="w-4 h-4" />
                 Imprimer

@@ -13,6 +13,8 @@ const Ordonnances = () => {
   const [isEditorOpen, setIsEditorOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedPatient, setSelectedPatient] = useState(null)
+  const [showPatientSelector, setShowPatientSelector] = useState(false)
+  const [patients, setPatients] = useState([])
 
   // Mock data for now (will be replaced with API call)
   const mockOrdonnances = [
@@ -43,8 +45,43 @@ const Ordonnances = () => {
     // fetchOrdonnances()
     // For now, use mock data
     setOrdonnances(mockOrdonnances)
+    fetchPatients()
     setLoading(false)
   }, [])
+
+  const fetchPatients = async () => {
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch(`${baseURL}/medecin/patients`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setPatients(data.patients || [])
+      }
+    } catch (error) {
+      console.error('Error fetching patients:', error)
+    }
+  }
+
+  const handleOpenEditor = () => {
+    if (patients.length > 0) {
+      setShowPatientSelector(true)
+    } else {
+      alert('Aucun patient disponible. Veuillez d\'abord créer un patient.')
+    }
+  }
+
+  const handleSelectPatient = (patient) => {
+    setSelectedPatient(patient)
+    setShowPatientSelector(false)
+    setIsEditorOpen(true)
+  }
 
   const handleSaveOrdonnance = async (ordonnance) => {
     try {
@@ -126,10 +163,7 @@ const Ordonnances = () => {
           </div>
 
           <button
-            onClick={() => {
-              // Open patient selector first
-              setIsEditorOpen(true)
-            }}
+            onClick={handleOpenEditor}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             <Plus className="w-4 h-4" />
@@ -221,13 +255,62 @@ const Ordonnances = () => {
         />
       </motion.div>
 
+      {/* Patient Selector Modal */}
+      {showPatientSelector && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col"
+          >
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+              <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <User className="w-5 h-5 text-blue-600" />
+                Sélectionner un patient
+              </h3>
+              <button
+                onClick={() => setShowPatientSelector(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="space-y-2">
+                {patients.map((patient) => (
+                  <button
+                    key={patient._id || patient.id}
+                    onClick={() => handleSelectPatient(patient)}
+                    className="w-full text-left p-4 border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors"
+                  >
+                    <p className="font-semibold text-gray-800">{patient.fullName}</p>
+                    <p className="text-sm text-gray-600">
+                      {patient.dateOfBirth && `${new Date().getFullYear() - new Date(patient.dateOfBirth).getFullYear()} ans`}
+                      {patient.gender && ` • ${patient.gender}`}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
       {/* Ordonnance Editor Modal */}
-      <OrdonnanceEditor
-        isOpen={isEditorOpen}
-        onClose={() => setIsEditorOpen(false)}
-        patient={selectedPatient || { fullName: 'Patient Sélectionné', _id: 'temp' }}
-        onSave={handleSaveOrdonnance}
-      />
+      {selectedPatient && (
+        <OrdonnanceEditor
+          isOpen={isEditorOpen}
+          onClose={() => {
+            setIsEditorOpen(false)
+            setSelectedPatient(null)
+          }}
+          patient={selectedPatient}
+          onSave={handleSaveOrdonnance}
+        />
+      )}
     </div>
   )
 }

@@ -2,6 +2,7 @@
 @import 'tailwindcss/components';
 @import './components.css';
 @import 'tailwindcss/utilities';
+@import './styles/print.css';
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
 /* Variables CSS personnalisées */
