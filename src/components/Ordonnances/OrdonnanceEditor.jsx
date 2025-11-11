@@ -9,6 +9,9 @@ const OrdonnanceEditor = ({ isOpen, onClose, patient, onSave }) => {
   const [medicaments, setMedicaments] = useState([])
   const [observations, setObservations] = useState('')
   const [showSettings, setShowSettings] = useState(false)
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [suggestions, setSuggestions] = useState([])
+  const [medicamentsDB, setMedicamentsDB] = useState([])
   const [template, setTemplate] = useState({
     logo: '',
     doctorName: localStorage.getItem('name')?.replace(/"/g, '') || '',
@@ -35,7 +38,7 @@ const OrdonnanceEditor = ({ isOpen, onClose, patient, onSave }) => {
     instructions: ''
   })
 
-  // Load saved template on mount
+  // Load saved template and medications DB on mount
   useEffect(() => {
     const savedTemplate = localStorage.getItem('prescriptionTemplate')
     if (savedTemplate) {
@@ -45,7 +48,56 @@ const OrdonnanceEditor = ({ isOpen, onClose, patient, onSave }) => {
         console.error('Error loading template:', e)
       }
     }
+
+    // Load medications database
+    const savedMeds = localStorage.getItem('medicaments')
+    if (savedMeds) {
+      try {
+        setMedicamentsDB(JSON.parse(savedMeds))
+      } catch (e) {
+        console.error('Error loading medications:', e)
+      }
+    }
   }, [])
+
+  const handleMedicamentSearch = (searchText) => {
+    if (searchText.length < 2) {
+      setSuggestions([])
+      return
+    }
+
+    const filtered = medicamentsDB.filter(med =>
+      med.nom.toLowerCase().includes(searchText.toLowerCase()) ||
+      med.moleculeMere.toLowerCase().includes(searchText.toLowerCase())
+    ).slice(0, 5)
+
+    setSuggestions(filtered)
+  }
+
+  const handleSelectMedicament = (med) => {
+    setCurrentMed({
+      nom: med.nom,
+      dosage: med.dosage,
+      forme: med.forme,
+      frequence: med.frequence || '3 fois par jour',
+      duree: '',
+      momentPrise: 'Après les repas',
+      instructions: ''
+    })
+    setShowSuggestions(false)
+    setSuggestions([])
+  }
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showSuggestions && !event.target.closest('.medication-autocomplete')) {
+        setShowSuggestions(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showSuggestions])
 
   const formes = ['Comprimé', 'Gélule', 'Sirop', 'Suppositoire', 'Injectable', 'Crème', 'Pommade']
   const momentsPrise = ['Avant les repas', 'Après les repas', 'Pendant les repas', 'À jeun', 'Au coucher', 'Matin et soir']
@@ -186,17 +238,48 @@ const OrdonnanceEditor = ({ isOpen, onClose, patient, onSave }) => {
                 </h3>
 
                 <div className="space-y-4">
-                  <div>
+                  <div className="relative medication-autocomplete">
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Nom du médicament *
+                      Nom du médicament * 
+                      <span className="text-xs text-gray-500 ml-2">(Commencez à taper pour voir les suggestions)</span>
                     </label>
                     <input
                       type="text"
                       value={currentMed.nom}
-                      onChange={(e) => setCurrentMed({...currentMed, nom: e.target.value})}
+                      onChange={(e) => {
+                        setCurrentMed({...currentMed, nom: e.target.value})
+                        handleMedicamentSearch(e.target.value)
+                      }}
+                      onFocus={() => {
+                        if (currentMed.nom.length >= 2) {
+                          handleMedicamentSearch(currentMed.nom)
+                          setShowSuggestions(true)
+                        }
+                      }}
                       placeholder="Ex: Doliprane"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      autoComplete="off"
                     />
+                    {showSuggestions && suggestions.length > 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                        {suggestions.map((med, index) => (
+                          <button
+                            key={index}
+                            type="button"
+                            onClick={() => handleSelectMedicament(med)}
+                            className="w-full text-left px-4 py-2 hover:bg-blue-50 border-b border-gray-100 last:border-b-0 transition-colors"
+                          >
+                            <div className="font-medium text-gray-900">{med.nom}</div>
+                            <div className="text-xs text-gray-500">
+                              {med.dosage} - {med.forme} - {med.fabricant}
+                            </div>
+                            <div className="text-xs text-blue-600 mt-0.5">
+                              {med.moleculeMere}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
