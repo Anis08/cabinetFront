@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, Plus, Trash2, Save, Printer, FileText, Settings as SettingsIcon, Download } from 'lucide-react'
 import PrescriptionTemplateSettings from './PrescriptionTemplateSettings'
 import PrescriptionPreview from './PrescriptionPreview'
+import MedicationSelector from './MedicationSelector'
 import { exportPrescriptionToPDF, printPrescription } from '../../utils/pdfExport'
 
 const OrdonnanceEditor = ({ isOpen, onClose, patient, onSave }) => {
@@ -231,10 +232,22 @@ const OrdonnanceEditor = ({ isOpen, onClose, patient, onSave }) => {
                 </p>
               </div>
 
-              {/* Medicament Form */}
+              {/* Medication Selector */}
               <div className="mb-6">
                 <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                  💊 Ajouter un médicament
+                  💊 Rechercher et Ajouter un médicament
+                </h3>
+
+                <MedicationSelector 
+                  onSelect={(med) => setCurrentMed(med)}
+                  medicamentsDB={medicamentsDB}
+                />
+              </div>
+
+              {/* Medicament Details Form */}
+              <div className="mb-6">
+                <h3 className="font-semibold text-gray-800 mb-4">
+                  Compléter les détails de prescription
                 </h3>
 
                 <div className="space-y-4">

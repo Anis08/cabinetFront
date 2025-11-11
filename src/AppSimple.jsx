@@ -25,6 +25,7 @@ import PublicWaitingLine from './pages/PublicWaitingLine';
 import AdsManagement from './pages/AdsManagement';
 import Ordonnances from './pages/Ordonnances';
 import Medicaments from './pages/Medicaments';
+import MedicationRequests from './pages/MedicationRequests';
 
 // Page de test simple
 const TestPage = () => (
@@ -135,6 +136,7 @@ function AppSimple() {
                               <Route path="calendar" element={<CalendarSimple />} />
                               <Route path="ordonnances" element={<Ordonnances />} />
                               <Route path="medicaments" element={<Medicaments />} />
+                              <Route path="medication-requests" element={<MedicationRequests />} />
                               <Route path="history" element={<HistorySimple />} />
                               <Route path="statistics" element={<StatisticsAdvanced />} />
                               <Route path="billing" element={<BillingSimple />} />

@@ -14,7 +14,8 @@ import {
   User,
   Monitor,
   FileText,
-  Pill
+  Pill,
+  Inbox
 } from 'lucide-react'
 
 const LayoutSimple = ({ children }) => {
@@ -75,6 +76,12 @@ const LayoutSimple = ({ children }) => {
       href: '/home/medicaments',
       icon: Pill,
       current: location.pathname === '/home/medicaments'
+    },
+    {
+      name: 'Demandes Médicaments',
+      href: '/home/medication-requests',
+      icon: Inbox,
+      current: location.pathname === '/home/medication-requests'
     },
     {
       name: 'Publicités',
