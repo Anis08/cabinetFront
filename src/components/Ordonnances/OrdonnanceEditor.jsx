@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, Plus, Trash2, Save, Printer, FileText, Settings as SettingsIcon, Download } from 'lucide-react'
 import PrescriptionTemplateSettings from './PrescriptionTemplateSettings'
 import PrescriptionPreview from './PrescriptionPreview'
-import MedicationSelector from './MedicationSelector'
+import MedicationSelector from './MedicationSelectorCascade'
 import { exportPrescriptionToPDF, printPrescription } from '../../utils/pdfExport'
 
 const OrdonnanceEditor = ({ isOpen, onClose, patient, onSave }) => {
@@ -102,6 +102,36 @@ const OrdonnanceEditor = ({ isOpen, onClose, patient, onSave }) => {
 
   const formes = ['Comprimé', 'Gélule', 'Sirop', 'Suppositoire', 'Injectable', 'Crème', 'Pommade']
   const momentsPrise = ['Avant les repas', 'Après les repas', 'Pendant les repas', 'À jeun', 'Au coucher', 'Matin et soir']
+  const frequences = [
+    '1 fois par jour',
+    '2 fois par jour',
+    '3 fois par jour',
+    '4 fois par jour',
+    'Toutes les 4 heures',
+    'Toutes les 6 heures',
+    'Toutes les 8 heures',
+    'Toutes les 12 heures',
+    'Matin',
+    'Soir',
+    'Matin et soir',
+    'Midi',
+    'Si besoin'
+  ]
+  const durees = [
+    '1 jour',
+    '2 jours',
+    '3 jours',
+    '5 jours',
+    '7 jours',
+    '10 jours',
+    '14 jours',
+    '21 jours',
+    '1 mois',
+    '2 mois',
+    '3 mois',
+    '6 mois',
+    'Traitement continu'
+  ]
 
   const handleAddMedicament = () => {
     if (!currentMed.nom || !currentMed.dosage || !currentMed.frequence || !currentMed.duree) {
@@ -330,26 +360,32 @@ const OrdonnanceEditor = ({ isOpen, onClose, patient, onSave }) => {
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Fréquence *
                       </label>
-                      <input
-                        type="text"
+                      <select
                         value={currentMed.frequence}
                         onChange={(e) => setCurrentMed({...currentMed, frequence: e.target.value})}
-                        placeholder="Ex: 3 fois par jour"
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
+                      >
+                        <option value="">Sélectionner une fréquence</option>
+                        {frequences.map(freq => (
+                          <option key={freq} value={freq}>{freq}</option>
+                        ))}
+                      </select>
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Durée *
+                        Durée du traitement *
                       </label>
-                      <input
-                        type="text"
+                      <select
                         value={currentMed.duree}
                         onChange={(e) => setCurrentMed({...currentMed, duree: e.target.value})}
-                        placeholder="Ex: 7 jours"
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
+                      >
+                        <option value="">Sélectionner une durée</option>
+                        {durees.map(duree => (
+                          <option key={duree} value={duree}>{duree}</option>
+                        ))}
+                      </select>
                     </div>
                   </div>
 
