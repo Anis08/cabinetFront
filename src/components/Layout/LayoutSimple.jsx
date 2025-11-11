@@ -51,12 +51,6 @@ const LayoutSimple = ({ children }) => {
       current: location.pathname === '/home/statistics'
     },
     {
-      name: 'Stats Avancées',
-      href: '/home/statistics-advanced',
-      icon: BarChart3,
-      current: location.pathname === '/home/statistics-advanced'
-    },
-    {
       name: 'Comptabilité',
       href: '/home/billing',
       icon: Euro,
