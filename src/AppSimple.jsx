@@ -23,6 +23,7 @@ import DataProvider from './store/DataProvider';
 import PatientProfile from './pages/PatientProfile';
 import PublicWaitingLine from './pages/PublicWaitingLine';
 import AdsManagement from './pages/AdsManagement';
+import Ordonnances from './pages/Ordonnances';
 
 // Page de test simple
 const TestPage = () => (
@@ -131,6 +132,7 @@ function AppSimple() {
                               <Route path="patients" element={<PatientsSimple />} />
                               <Route path="queue" element={<QueueSimple />} />
                               <Route path="calendar" element={<CalendarSimple />} />
+                              <Route path="ordonnances" element={<Ordonnances />} />
                               <Route path="history" element={<HistorySimple />} />
                               <Route path="statistics" element={<StatisticsAdvanced />} />
                               <Route path="billing" element={<BillingSimple />} />

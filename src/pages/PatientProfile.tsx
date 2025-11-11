@@ -42,6 +42,7 @@ import {
   StickyNote
 } from 'lucide-react';
 import BiologicalDataSection from '../components/Patients/BiologicalDataSection';
+import OrdonnanceEditor from '../components/Ordonnances/OrdonnanceEditor';
 import {
   LineChart,
   Line,
@@ -354,6 +355,10 @@ const PatientProfile: React.FC = () => {
   });
   const [uploadingFile, setUploadingFile] = useState(false);
   const [expandedExams, setExpandedExams] = useState<{[key: string]: boolean}>({});
+
+  // Ordonnances States
+  const [showOrdonnanceEditor, setShowOrdonnanceEditor] = useState(false);
+  const [ordonnances, setOrdonnances] = useState<any[]>([]); // Will be fetched from API
 
   const examTypes = [
     'Échographie rénale',
@@ -1165,6 +1170,105 @@ const PatientProfile: React.FC = () => {
         {/* Spacing between sections */}
         <div className="mb-12"></div>
 
+        {/* Ordonnances Médicales Section */}
+        <div className="mb-8">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+            {/* Header with Purple gradient */}
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FileText className="w-5 h-5 text-purple-500" />
+                <h3 className="text-lg font-semibold text-gray-800">Ordonnances Médicales</h3>
+              </div>
+              <button
+                onClick={() => setShowOrdonnanceEditor(true)}
+                className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white px-4 py-2 rounded-lg font-medium hover:shadow-lg transition-all duration-200 flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                Nouvelle ordonnance
+              </button>
+            </div>
+
+            {/* Content Area */}
+            {ordonnances && ordonnances.length > 0 ? (
+              <div className="divide-y divide-gray-200">
+                {ordonnances.map((ord, index) => (
+                  <div key={ord._id || index} className="p-6 hover:bg-gray-50 transition-colors">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className="flex items-center gap-2 text-sm">
+                            <Calendar className="w-4 h-4 text-gray-400" />
+                            <span className="font-medium text-gray-700">
+                              {new Date(ord.date).toLocaleDateString('fr-FR', {
+                                day: 'numeric',
+                                month: 'long',
+                                year: 'numeric'
+                              })}
+                            </span>
+                          </div>
+                          <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+                            #{ord.numero || ord._id?.slice(-6)}
+                          </span>
+                        </div>
+
+                        <div className="space-y-2">
+                          {ord.medicaments?.map((med: any, idx: number) => (
+                            <div key={idx} className="flex items-start gap-2 text-sm">
+                              <div className="w-1 h-1 rounded-full bg-purple-500 mt-2"></div>
+                              <div>
+                                <span className="font-medium text-gray-800">
+                                  {med.nom} {med.dosage}
+                                </span>
+                                <span className="text-gray-600"> - {med.frequence}</span>
+                                {med.duree && <span className="text-gray-500"> pendant {med.duree}</span>}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {ord.observations && (
+                          <div className="mt-3 p-3 bg-purple-50 border border-purple-100 rounded-lg">
+                            <p className="text-sm text-gray-700">{ord.observations}</p>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex gap-2">
+                        <button
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="Voir l'ordonnance"
+                        >
+                          <Eye className="w-5 h-5" />
+                        </button>
+                        <button
+                          className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                          title="Télécharger PDF"
+                        >
+                          <Download className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-8 text-center">
+                <FileText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500 text-sm">Aucune ordonnance disponible</p>
+                <button
+                  onClick={() => setShowOrdonnanceEditor(true)}
+                  className="mt-4 text-purple-600 hover:text-purple-700 text-sm font-medium"
+                >
+                  Créer la première ordonnance
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Spacing between sections */}
+        <div className="mb-12"></div>
+
         {/* Examens Complémentaires Section - Simple Design like Biological Data */}
         <div className="mb-8">
           <div className="bg-white rounded-xl shadow-sm border border-gray-100">
@@ -1827,6 +1931,21 @@ const PatientProfile: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Ordonnance Editor Modal */}
+      {showOrdonnanceEditor && patient && (
+        <OrdonnanceEditor
+          isOpen={showOrdonnanceEditor}
+          onClose={() => setShowOrdonnanceEditor(false)}
+          patient={patient}
+          onSave={(ordonnance) => {
+            // Add to ordonnances list
+            setOrdonnances([ordonnance, ...ordonnances])
+            setShowOrdonnanceEditor(false)
+            alert('Ordonnance créée avec succès!')
+          }}
+        />
       )}
     </div>
   );

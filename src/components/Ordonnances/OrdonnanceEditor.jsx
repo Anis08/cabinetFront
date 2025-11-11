@@ -1,0 +1,346 @@
+import React, { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { X, Plus, Trash2, Save, Printer, FileText } from 'lucide-react'
+
+const OrdonnanceEditor = ({ isOpen, onClose, patient, onSave }) => {
+  const [medicaments, setMedicaments] = useState([])
+  const [observations, setObservations] = useState('')
+  const [currentMed, setCurrentMed] = useState({
+    nom: '',
+    dosage: '',
+    forme: 'Comprimé',
+    frequence: '',
+    duree: '',
+    momentPrise: 'Après les repas',
+    instructions: ''
+  })
+
+  const formes = ['Comprimé', 'Gélule', 'Sirop', 'Suppositoire', 'Injectable', 'Crème', 'Pommade']
+  const momentsPrise = ['Avant les repas', 'Après les repas', 'Pendant les repas', 'À jeun', 'Au coucher', 'Matin et soir']
+
+  const handleAddMedicament = () => {
+    if (!currentMed.nom || !currentMed.dosage || !currentMed.frequence || !currentMed.duree) {
+      alert('Veuillez remplir tous les champs obligatoires du médicament')
+      return
+    }
+
+    setMedicaments([...medicaments, { ...currentMed, id: Date.now() }])
+    setCurrentMed({
+      nom: '',
+      dosage: '',
+      forme: 'Comprimé',
+      frequence: '',
+      duree: '',
+      momentPrise: 'Après les repas',
+      instructions: ''
+    })
+  }
+
+  const handleRemoveMedicament = (id) => {
+    setMedicaments(medicaments.filter(m => m.id !== id))
+  }
+
+  const handleSave = () => {
+    if (medicaments.length === 0) {
+      alert('Veuillez ajouter au moins un médicament')
+      return
+    }
+
+    const ordonnance = {
+      patientId: patient._id || patient.id,
+      patientName: patient.fullName,
+      date: new Date().toISOString(),
+      medicaments,
+      observations
+    }
+
+    onSave(ordonnance)
+  }
+
+  const handlePrint = () => {
+    window.print()
+  }
+
+  if (!isOpen) return null
+
+  return (
+    <AnimatePresence>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          className="bg-white rounded-xl shadow-2xl w-full max-w-7xl h-[90vh] flex flex-col"
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+            <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+              <FileText className="w-6 h-6 text-blue-600" />
+              Nouvelle Ordonnance
+            </h2>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <X className="w-6 h-6 text-gray-600" />
+            </button>
+          </div>
+
+          {/* Content - Split View */}
+          <div className="flex-1 flex overflow-hidden">
+            {/* Left: Form */}
+            <div className="w-1/2 overflow-y-auto p-6 border-r border-gray-200">
+              {/* Patient Info */}
+              <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <h3 className="font-semibold text-gray-800 mb-2">Patient</h3>
+                <p className="text-gray-700">{patient?.fullName}</p>
+                <p className="text-sm text-gray-600">
+                  {patient?.dateOfBirth && `${new Date().getFullYear() - new Date(patient.dateOfBirth).getFullYear()} ans`}
+                  {patient?.gender && ` • ${patient.gender}`}
+                </p>
+              </div>
+
+              {/* Medicament Form */}
+              <div className="mb-6">
+                <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  💊 Ajouter un médicament
+                </h3>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Nom du médicament *
+                    </label>
+                    <input
+                      type="text"
+                      value={currentMed.nom}
+                      onChange={(e) => setCurrentMed({...currentMed, nom: e.target.value})}
+                      placeholder="Ex: Doliprane"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Dosage *
+                      </label>
+                      <input
+                        type="text"
+                        value={currentMed.dosage}
+                        onChange={(e) => setCurrentMed({...currentMed, dosage: e.target.value})}
+                        placeholder="Ex: 1000mg"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Forme
+                      </label>
+                      <select
+                        value={currentMed.forme}
+                        onChange={(e) => setCurrentMed({...currentMed, forme: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        {formes.map(forme => (
+                          <option key={forme} value={forme}>{forme}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Fréquence *
+                      </label>
+                      <input
+                        type="text"
+                        value={currentMed.frequence}
+                        onChange={(e) => setCurrentMed({...currentMed, frequence: e.target.value})}
+                        placeholder="Ex: 3 fois par jour"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Durée *
+                      </label>
+                      <input
+                        type="text"
+                        value={currentMed.duree}
+                        onChange={(e) => setCurrentMed({...currentMed, duree: e.target.value})}
+                        placeholder="Ex: 7 jours"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Moment de prise
+                    </label>
+                    <select
+                      value={currentMed.momentPrise}
+                      onChange={(e) => setCurrentMed({...currentMed, momentPrise: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      {momentsPrise.map(moment => (
+                        <option key={moment} value={moment}>{moment}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Instructions spéciales
+                    </label>
+                    <textarea
+                      value={currentMed.instructions}
+                      onChange={(e) => setCurrentMed({...currentMed, instructions: e.target.value})}
+                      placeholder="Ex: Ne pas écraser le comprimé"
+                      rows={2}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+
+                  <button
+                    onClick={handleAddMedicament}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Ajouter ce médicament
+                  </button>
+                </div>
+              </div>
+
+              {/* Observations */}
+              <div className="mb-6">
+                <h3 className="font-semibold text-gray-800 mb-2">Observations</h3>
+                <textarea
+                  value={observations}
+                  onChange={(e) => setObservations(e.target.value)}
+                  placeholder="Observations, recommandations, consignes..."
+                  rows={4}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+            </div>
+
+            {/* Right: Preview */}
+            <div className="w-1/2 overflow-y-auto p-6 bg-gray-50">
+              <div className="bg-white rounded-lg shadow-lg p-8 max-w-2xl mx-auto">
+                {/* Header */}
+                <div className="border-b-2 border-gray-300 pb-4 mb-6">
+                  <h3 className="text-xl font-bold text-gray-800">Dr. {localStorage.getItem('name')?.replace(/"/g, '')}</h3>
+                  <p className="text-sm text-gray-600">Médecin Généraliste</p>
+                </div>
+
+                {/* Patient Info */}
+                <div className="mb-6">
+                  <p className="text-sm text-gray-600">Patient: <span className="font-semibold text-gray-800">{patient?.fullName}</span></p>
+                  <p className="text-sm text-gray-600">Date: <span className="font-semibold text-gray-800">{new Date().toLocaleDateString('fr-FR')}</span></p>
+                </div>
+
+                {/* Prescription Symbol */}
+                <div className="mb-4">
+                  <span className="text-4xl font-serif text-gray-700">℞</span>
+                </div>
+
+                {/* Medications List */}
+                <div className="mb-6 space-y-4">
+                  {medicaments.length === 0 ? (
+                    <p className="text-gray-400 italic text-center py-8">
+                      Aucun médicament ajouté
+                    </p>
+                  ) : (
+                    medicaments.map((med, index) => (
+                      <div key={med.id} className="relative border-l-4 border-blue-500 pl-4 py-2">
+                        <button
+                          onClick={() => handleRemoveMedicament(med.id)}
+                          className="absolute -right-2 -top-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                        <p className="font-semibold text-gray-800">
+                          {index + 1}. {med.nom} {med.dosage}
+                        </p>
+                        <p className="text-sm text-gray-700">
+                          {med.frequence}
+                        </p>
+                        <p className="text-sm text-gray-700">
+                          Durée: {med.duree}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          {med.momentPrise}
+                        </p>
+                        {med.instructions && (
+                          <p className="text-sm text-gray-600 italic mt-1">
+                            {med.instructions}
+                          </p>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Observations */}
+                {observations && (
+                  <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-sm font-semibold text-gray-800 mb-2">Observations:</p>
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{observations}</p>
+                  </div>
+                )}
+
+                {/* Footer */}
+                <div className="border-t-2 border-gray-300 pt-4 mt-8">
+                  <div className="flex justify-between items-end">
+                    <div className="text-sm text-gray-600">
+                      <p>Date: {new Date().toLocaleDateString('fr-FR')}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-gray-600">Signature</p>
+                      <p className="font-semibold text-gray-800 mt-8">Dr. {localStorage.getItem('name')?.replace(/"/g, '')}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer Actions */}
+          <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-50">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg transition-colors"
+            >
+              Annuler
+            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={handlePrint}
+                disabled={medicaments.length === 0}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Printer className="w-4 h-4" />
+                Imprimer
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={medicaments.length === 0}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Save className="w-4 h-4" />
+                Enregistrer
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    </AnimatePresence>
+  )
+}
+
+export default OrdonnanceEditor

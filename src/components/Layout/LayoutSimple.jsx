@@ -12,7 +12,8 @@ import {
   Calendar,
   Settings,
   User,
-  Monitor
+  Monitor,
+  FileText
 } from 'lucide-react'
 
 const LayoutSimple = ({ children }) => {
@@ -67,6 +68,12 @@ const LayoutSimple = ({ children }) => {
       href: '/home/calendar',
       icon: Calendar,
       current: location.pathname === '/home/calendar'
+    },
+    {
+      name: 'Ordonnances',
+      href: '/home/ordonnances',
+      icon: FileText,
+      current: location.pathname === '/home/ordonnances'
     },
     {
       name: 'Publicités',
