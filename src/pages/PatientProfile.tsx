@@ -792,19 +792,22 @@ const PatientProfile: React.FC = () => {
                       {patient?.fullName}
                     </h1>
                     <p className="text-gray-500 mb-3">{getAgeFromDate(patient?.dateOfBirth)} ans • {patient?.gender}</p>
-                    <div className="space-y-2 mt-3">
+                    <div className="flex items-center gap-4 flex-wrap mt-3">
                       <div className="flex items-center gap-2 text-sm text-gray-600">
                         <Droplet className="w-4 h-4 text-blue-500" />
                         <span className="font-medium">{patient?.maladieChronique || 'Non renseigné'}</span>
                       </div>
+                      <span className="text-gray-300">•</span>
                       <div className="flex items-center gap-2 text-sm text-gray-600">
                         <Mail className="w-4 h-4 text-purple-500" />
                         <span className="font-medium">{patient?.email || 'Non renseigné'}</span>
                       </div>
+                      <span className="text-gray-300">•</span>
                       <div className="flex items-center gap-2 text-sm text-gray-600">
                         <Phone className="w-4 h-4 text-green-500" />
                         <span className="font-medium">{patient?.phoneNumber || 'Non renseigné'}</span>
                       </div>
+                      <span className="text-gray-300">•</span>
                       <div className="flex items-center gap-2 text-sm text-gray-600">
                         <MapPin className="w-4 h-4 text-red-500" />
                         <span className="font-medium">{patient?.address || 'Non renseigné'}</span>
