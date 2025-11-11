@@ -37,7 +37,7 @@ const DashboardSimple = () => {
   const fetchDashboardKPIs = async () => {
     try {
       setLoading(true)
-      const token = localStorage.getItem('accessToken')
+      const token = localStorage.getItem('token')
       
       // Try dedicated dashboard-kpis endpoint first
       try {
