@@ -11,7 +11,8 @@ import {
   Calendar,
   MonitorPlay,
   ExternalLink,
-  RefreshCw
+  RefreshCw,
+  AlertTriangle
 } from 'lucide-react'
 
 const DashboardSimple = () => {
@@ -36,7 +37,7 @@ const DashboardSimple = () => {
   const fetchDashboardKPIs = async () => {
     try {
       setLoading(true)
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem('accessToken')
       
       const response = await fetch(`${baseURL}/medecin/dashboard-kpis`, {
         method: 'GET',
@@ -57,7 +58,23 @@ const DashboardSimple = () => {
       setLastRefresh(new Date())
     } catch (err) {
       console.error('Error fetching dashboard KPIs:', err)
-      setError('Impossible de charger les données du tableau de bord')
+      
+      // Fallback to mock data if backend is not available
+      console.warn('Backend non disponible, utilisation des données mockées')
+      setKpis({
+        patientsToday: 12,
+        waiting: 3,
+        completed: 8,
+        revenue: 845,
+        trends: {
+          patientsDiff: '+2',
+          waitingTime: '15min',
+          completionRate: '67%',
+          revenueChange: '+12%'
+        }
+      })
+      setError('⚠️ Backend non connecté - Données mockées affichées')
+      setLastRefresh(new Date())
     } finally {
       setLoading(false)
     }
@@ -188,6 +205,36 @@ const DashboardSimple = () => {
           </p>
         )}
       </motion.div>
+
+      {/* Warning Banner - Backend non connecté */}
+      {error && kpis && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="bg-orange-50 border border-orange-200 rounded-lg p-4"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-orange-100 rounded-lg">
+                <AlertTriangle className="h-5 w-5 text-orange-600" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-orange-800">{error}</p>
+                <p className="text-xs text-orange-600 mt-1">
+                  Le backend n'est pas accessible. Les données affichées sont des exemples pour la démonstration.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={fetchDashboardKPIs}
+              className="px-4 py-2 bg-orange-600 text-white text-sm rounded-lg hover:bg-orange-700 transition-colors"
+            >
+              Reconnecter
+            </button>
+          </div>
+        </motion.div>
+      )}
 
       {/* KPIs */}
       <motion.div
