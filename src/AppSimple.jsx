@@ -13,7 +13,6 @@ import QueueSimple from './pages/QueueSimple'
 import CalendarSimple from './pages/CalendarSimple'
 import HistorySimple from './pages/HistorySimple'
 import BillingSimple from './pages/BillingSimple'
-import StatisticsSimple from './pages/StatisticsSimple'
 import StatisticsAdvanced from './pages/StatisticsAdvanced'
 import SignUp from './pages/signup';
 import Login from './pages/login';
@@ -133,8 +132,7 @@ function AppSimple() {
                               <Route path="queue" element={<QueueSimple />} />
                               <Route path="calendar" element={<CalendarSimple />} />
                               <Route path="history" element={<HistorySimple />} />
-                              <Route path="statistics" element={<StatisticsSimple />} />
-                              <Route path="statistics-advanced" element={<StatisticsAdvanced />} />
+                              <Route path="statistics" element={<StatisticsAdvanced />} />
                               <Route path="billing" element={<BillingSimple />} />
                               <Route path="ads-management" element={<AdsManagement />} />
                               <Route path="patient-profile/:patientId" element={<PatientProfile />} />

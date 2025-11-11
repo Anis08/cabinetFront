@@ -56,9 +56,7 @@ const PublicWaitingLine = () => {
 
       if (response.ok) {
         const data = await response.json()
-        
         const ads = data.ads || []
-        console.log('data: ', ads)
         
         // Filter by date range
         const now = new Date()
@@ -70,7 +68,6 @@ const PublicWaitingLine = () => {
         
         // Separate by position
         setTopAds(activeAds.filter(ad => ad.position === 'top'))
-        console.log('hamid', activeAds)
         setBottomAds(activeAds.filter(ad => ad.position === 'bottom'))
       }
     } catch (error) {
@@ -129,31 +126,13 @@ const PublicWaitingLine = () => {
 
   // Rotate top ads
   useEffect(() => {
-    if (topAds.length === 0) return
-
-    const currentAd = topAds[currentTopAdIndex]
-    const duration = (currentAd?.duration || 5) * 1000
-
-    const timer = setTimeout(() => {
-      setCurrentTopAdIndex((prev) => (prev + 1) % topAds.length)
-    }, duration)
-
-    return () => clearTimeout(timer)
-  }, [currentTopAdIndex, topAds])
+    // Disabled: always show the first ad only
+  }, [topAds])
 
   // Rotate bottom ads
   useEffect(() => {
-    if (bottomAds.length === 0) return
-
-    const currentAd = bottomAds[currentBottomAdIndex]
-    const duration = (currentAd?.duration || 5) * 1000
-
-    const timer = setTimeout(() => {
-      setCurrentBottomAdIndex((prev) => (prev + 1) % bottomAds.length)
-    }, duration)
-
-    return () => clearTimeout(timer)
-  }, [currentBottomAdIndex, bottomAds])
+    // Disabled: always show the first ad only
+  }, [bottomAds])
 
   const formatTime = (date) => {
     return date.toLocaleTimeString('fr-FR', {
@@ -173,7 +152,7 @@ const PublicWaitingLine = () => {
   }
 
   // Ad display component
-  const AdDisplay = ({ ads, currentIndex, position }) => {
+  const AdDisplay = ({ ads, position }) => {
     if (ads.length === 0) {
       return (
         <div className="h-full flex items-center justify-center">
@@ -186,35 +165,29 @@ const PublicWaitingLine = () => {
       )
     }
 
-    const currentAd = ads[currentIndex]
+    // Always show the first ad only (make it permanent)
+    const currentAd = ads[0];
+    const url = `http://localhost:4000/medecin/ads/image/${currentAd.fileUrl}`;
 
     return (
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={`${position}-${currentAd.id}-${currentIndex}`}
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          transition={{ duration: 0.5 }}
-          className="h-full w-full"
-        >
-          {currentAd.type === 'image' ? (
-            <img
-              src={currentAd.fileUrl}
-              alt={currentAd.title}
-              className="w-full h-full object-cover rounded-2xl"
-            />
-          ) : (
-            <video
-              src={currentAd.fileUrl}
-              autoPlay
-              muted
-              loop
-              className="w-full h-full object-cover rounded-2xl"
-            />
-          )}
-        </motion.div>
-      </AnimatePresence>
+      <div className="h-full w-full">
+        {currentAd.type === 'image' ? (
+          <img
+            src={url}
+            alt={currentAd.title}
+            className="w-full h-full object-cover rounded-2xl"
+            draggable={false}
+          />
+        ) : (
+          <video
+            src={currentAd.fileUrl}
+            autoPlay
+            muted
+            loop
+            className="w-full h-full object-cover rounded-2xl"
+          />
+        )}
+      </div>
     )
   }
 
@@ -483,17 +456,9 @@ const PublicWaitingLine = () => {
             animate={{ opacity: 1, y: 0 }}
             className="flex-1 backdrop-blur-xl bg-gradient-to-r from-pink-500/20 to-orange-500/20 rounded-2xl border border-white/20 overflow-hidden"
           >
-            <AdDisplay ads={topAds} currentIndex={currentTopAdIndex} position="top" />
+            <AdDisplay ads={topAds} position="top" />
           </motion.div>
 
-          {/* BOTTOM BANNER AD SPACE - 50% height */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex-1 backdrop-blur-xl bg-gradient-to-r from-purple-500/20 to-cyan-500/20 rounded-2xl border border-white/20 overflow-hidden"
-          >
-            <AdDisplay ads={bottomAds} currentIndex={currentBottomAdIndex} position="bottom" />
-          </motion.div>
         </div>
       </div>
 

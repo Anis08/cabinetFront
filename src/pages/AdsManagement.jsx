@@ -337,7 +337,7 @@ const AdsManagement = () => {
                 <div className="relative h-48 bg-gray-100">
                   {ad.type === 'image' ? (
                     <img
-                      src={ad.fileUrl}
+                      src={`http://localhost:4000/medecin/ads/image/${ad.fileUrl}`}
                       alt={ad.title}
                       className="w-full h-full object-cover"
                     />
