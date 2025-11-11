@@ -1,6 +1,7 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
+import { baseURL } from '../config'
 import { 
   Users, 
   Clock, 
@@ -9,11 +10,58 @@ import {
   Activity,
   Calendar,
   MonitorPlay,
-  ExternalLink
+  ExternalLink,
+  RefreshCw
 } from 'lucide-react'
 
 const DashboardSimple = () => {
   const navigate = useNavigate()
+  const [kpis, setKpis] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [lastRefresh, setLastRefresh] = useState(new Date())
+  
+  // Fetch KPIs on component mount
+  useEffect(() => {
+    fetchDashboardKPIs()
+    
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(() => {
+      fetchDashboardKPIs()
+    }, 30000)
+    
+    return () => clearInterval(interval)
+  }, [])
+
+  const fetchDashboardKPIs = async () => {
+    try {
+      setLoading(true)
+      const token = localStorage.getItem('token')
+      
+      const response = await fetch(`${baseURL}/medecin/dashboard-kpis`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include'
+      })
+
+      if (!response.ok) {
+        throw new Error('Erreur lors de la récupération des KPIs')
+      }
+
+      const data = await response.json()
+      setKpis(data.kpis)
+      setError(null)
+      setLastRefresh(new Date())
+    } catch (err) {
+      console.error('Error fetching dashboard KPIs:', err)
+      setError('Impossible de charger les données du tableau de bord')
+    } finally {
+      setLoading(false)
+    }
+  }
   
   const openWaitingLine = () => {
     window.open('/waiting-line', '_blank')
@@ -23,44 +71,68 @@ const DashboardSimple = () => {
     navigate('/home/ads-management')
   }
 
-  // Données mockées simples
-  const mockKPIs = {
-    patientsToday: 12,
-    waiting: 3,
-    completed: 8,
-    revenue: 845
+  // Loading state
+  if (loading && !kpis) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <Activity className="h-12 w-12 text-blue-600 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Chargement du tableau de bord...</p>
+        </div>
+      </div>
+    )
   }
 
-  const mockStats = [
+  // Error state
+  if (error && !kpis) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md">
+            <h3 className="text-red-800 font-semibold mb-2">Erreur</h3>
+            <p className="text-red-600 mb-4">{error}</p>
+            <button
+              onClick={fetchDashboardKPIs}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            >
+              Réessayer
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const mockStats = kpis ? [
     {
       title: 'Patients aujourd\'hui',
-      value: mockKPIs.patientsToday,
+      value: kpis.patientsToday,
       icon: Users,
       color: 'blue',
-      trend: '+2 vs hier'
+      trend: `${kpis.trends.patientsDiff} vs hier`
     },
     {
       title: 'En attente',
-      value: mockKPIs.waiting,
+      value: kpis.waiting,
       icon: Clock,
       color: 'orange',
-      trend: 'Temps moyen: 15min'
+      trend: `Temps moyen: ${kpis.trends.waitingTime}`
     },
     {
       title: 'Terminés',
-      value: mockKPIs.completed,
+      value: kpis.completed,
       icon: Activity,
       color: 'green',
-      trend: '67% du planning'
+      trend: `Taux: ${kpis.trends.completionRate}`
     },
     {
       title: 'Recettes',
-      value: `${mockKPIs.revenue}€`,
+      value: `${kpis.revenue}€`,
       icon: Euro,
       color: 'purple',
-      trend: '+12% vs hier'
+      trend: `${kpis.trends.revenueChange} vs hier`
     }
-  ]
+  ] : []
 
   const getColorClasses = (color) => {
     const colors = {
@@ -89,16 +161,32 @@ const DashboardSimple = () => {
             <p className="text-gray-600 mt-1">Vue d'ensemble de votre cabinet médical</p>
           </div>
           
-          <div className="flex items-center space-x-2 text-sm text-gray-500">
-            <Calendar className="h-4 w-4" />
-            <span>{new Date().toLocaleDateString('fr-FR', { 
-              weekday: 'long', 
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric' 
-            })}</span>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center space-x-2 text-sm text-gray-500">
+              <Calendar className="h-4 w-4" />
+              <span>{new Date().toLocaleDateString('fr-FR', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+              })}</span>
+            </div>
+            <button
+              onClick={fetchDashboardKPIs}
+              disabled={loading}
+              className="flex items-center gap-2 px-3 py-2 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors disabled:opacity-50"
+              title="Actualiser les données"
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">Actualiser</span>
+            </button>
           </div>
         </div>
+        {lastRefresh && (
+          <p className="text-xs text-gray-400 mt-2">
+            Dernière mise à jour: {lastRefresh.toLocaleTimeString('fr-FR')}
+          </p>
+        )}
       </motion.div>
 
       {/* KPIs */}
@@ -142,17 +230,26 @@ const DashboardSimple = () => {
       >
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Actions rapides</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button className="flex items-center space-x-3 p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+          <button 
+            onClick={() => navigate('/home/patients')}
+            className="flex items-center space-x-3 p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+          >
             <Users className="h-5 w-5 text-blue-600" />
             <span className="font-medium">Nouveau patient</span>
           </button>
           
-          <button className="flex items-center space-x-3 p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+          <button 
+            onClick={() => navigate('/home/today-appointments')}
+            className="flex items-center space-x-3 p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+          >
             <Clock className="h-5 w-5 text-orange-600" />
             <span className="font-medium">Ajouter à la file</span>
           </button>
           
-          <button className="flex items-center space-x-3 p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+          <button 
+            onClick={() => navigate('/home/calendar')}
+            className="flex items-center space-x-3 p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+          >
             <Calendar className="h-5 w-5 text-green-600" />
             <span className="font-medium">Planifier RDV</span>
           </button>
@@ -206,18 +303,20 @@ const DashboardSimple = () => {
             </div>
           </div>
           <div className="flex-1">
-            <h3 className="text-sm font-medium text-green-800">Application fonctionnelle !</h3>
+            <h3 className="text-sm font-medium text-green-800">Dashboard connecté !</h3>
             <div className="mt-2 text-sm text-green-700">
-              <p>✅ Dashboard simplifié chargé avec succès</p>
-              <p>✅ Toutes les fonctionnalités v2 sont implémentées</p>
-              <p>✅ Navigation, RBAC, Calendar, WhatsApp, Auto-refresh</p>
+              <p>✅ Données en temps réel chargées depuis le backend</p>
+              <p>✅ Auto-refresh toutes les 30 secondes</p>
+              {kpis && (
+                <p>✅ KPIs: {kpis.patientsToday} patients aujourd'hui, {kpis.completed} terminés</p>
+              )}
             </div>
             <div className="mt-3">
               <button 
-                onClick={() => window.location.href = '/patients'}
+                onClick={() => navigate('/home/patients')}
                 className="text-green-800 hover:text-green-900 text-sm font-medium underline"
               >
-                Tester les autres pages →
+                Voir tous les patients →
               </button>
             </div>
           </div>
