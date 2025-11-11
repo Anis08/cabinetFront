@@ -449,7 +449,12 @@ const PatientProfile: React.FC = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setPatient(data.patient);
+        // Preserve existing patient data (especially rendezVous) while updating new fields
+        setPatient(prevPatient => ({
+          ...prevPatient,
+          ...data.patient,
+          rendezVous: prevPatient?.rendezVous || []
+        }));
         setShowEditModal(false);
         alert('Informations du patient mises à jour avec succès !');
       } else {
