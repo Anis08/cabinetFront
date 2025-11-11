@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Users, Plus, Search, Eye, Edit, Flag } from 'lucide-react'
+import { Users, Plus, Search, Eye, Edit, Flag, Filter, X, ChevronDown } from 'lucide-react'
 import { baseURL } from "../config"
 import { useAuth } from '../store/AuthProvider'
 import { useData } from '../store/DataProvider' 
@@ -11,6 +11,20 @@ import { useNavigate } from "react-router-dom";
 const PatientsSimple = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('')
+  const [showFilters, setShowFilters] = useState(false)
+  
+  // Filter states
+  const [filters, setFilters] = useState({
+    gender: '',
+    ageMin: '',
+    ageMax: '',
+    dateCreationStart: '',
+    dateCreationEnd: '',
+    maladie: '',
+    wilaya: '',
+    phoneNumber: ''
+  })
+  
   const { logout, refresh } = useAuth();
   const { patients, setPatients, averageAge, newPatientsThisMonth, patientsViewedThisWeek, 
     setAverageAge, setNewPatientsThisMonth, setPatientsViewedThisWeek } = useData();
@@ -132,9 +146,72 @@ const PatientsSimple = () => {
     getPatients();
   }, [])
 
-  const filteredPatients = patients ? patients.filter(patient =>
-    patient.fullName.toLowerCase().includes(searchTerm.toLowerCase())
-  ) : [];
+  // Helper function to calculate age from date of birth
+  const calculateAge = (dateOfBirth) => {
+    if (!dateOfBirth) return 0
+    const today = new Date()
+    const birthDate = new Date(dateOfBirth)
+    let age = today.getFullYear() - birthDate.getFullYear()
+    const monthDiff = today.getMonth() - birthDate.getMonth()
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--
+    }
+    return age
+  }
+
+  // Advanced filtering logic
+  const filteredPatients = patients ? patients.filter(patient => {
+    // Search term filter (name)
+    const matchesSearch = patient.fullName.toLowerCase().includes(searchTerm.toLowerCase())
+    
+    // Gender filter
+    const matchesGender = !filters.gender || patient.gender === filters.gender
+    
+    // Age filter
+    const age = calculateAge(patient.dateOfBirth)
+    const matchesAgeMin = !filters.ageMin || age >= parseInt(filters.ageMin)
+    const matchesAgeMax = !filters.ageMax || age <= parseInt(filters.ageMax)
+    
+    // Date creation filter
+    const createdAt = patient.createdAt ? new Date(patient.createdAt) : null
+    const matchesDateStart = !filters.dateCreationStart || !createdAt || 
+      createdAt >= new Date(filters.dateCreationStart)
+    const matchesDateEnd = !filters.dateCreationEnd || !createdAt || 
+      createdAt <= new Date(filters.dateCreationEnd + 'T23:59:59')
+    
+    // Maladie filter
+    const matchesMaladie = !filters.maladie || 
+      (patient.maladieChronique && patient.maladieChronique.toLowerCase().includes(filters.maladie.toLowerCase()))
+    
+    // Wilaya filter
+    const matchesWilaya = !filters.wilaya || 
+      (patient.address && patient.address.toLowerCase().includes(filters.wilaya.toLowerCase()))
+    
+    // Phone number filter
+    const matchesPhone = !filters.phoneNumber || 
+      (patient.phoneNumber && patient.phoneNumber.includes(filters.phoneNumber))
+    
+    return matchesSearch && matchesGender && matchesAgeMin && matchesAgeMax && 
+           matchesDateStart && matchesDateEnd && matchesMaladie && matchesWilaya && matchesPhone
+  }) : []
+
+  // Clear all filters
+  const handleClearFilters = () => {
+    setFilters({
+      gender: '',
+      ageMin: '',
+      ageMax: '',
+      dateCreationStart: '',
+      dateCreationEnd: '',
+      maladie: '',
+      wilaya: '',
+      phoneNumber: ''
+    })
+    setSearchTerm('')
+  }
+
+  // Check if any filter is active
+  const hasActiveFilters = Object.values(filters).some(value => value !== '') || searchTerm !== ''
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -319,23 +396,195 @@ const PatientsSimple = () => {
           </div>
         </motion.div>
 
-        {/* Barre de recherche */}
+        {/* Barre de recherche et Filtres */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.2 }}
-          className="bg-white rounded-lg shadow-sm border border-gray-200 p-4"
+          className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 space-y-4"
         >
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Rechercher un patient..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
+          {/* Search and Filter Toggle */}
+          <div className="flex gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Rechercher par nom..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                showFilters || hasActiveFilters
+                  ? 'bg-blue-600 text-white hover:bg-blue-700'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <Filter className="h-5 w-5" />
+              Filtres
+              {hasActiveFilters && (
+                <span className="bg-white text-blue-600 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">
+                  {Object.values(filters).filter(v => v !== '').length}
+                </span>
+              )}
+            </button>
+            {hasActiveFilters && (
+              <button
+                onClick={handleClearFilters}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+              >
+                <X className="h-5 w-5" />
+                Réinitialiser
+              </button>
+            )}
           </div>
+
+          {/* Filters Panel */}
+          <AnimatePresence>
+            {showFilters && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+                className="border-t border-gray-200 pt-4"
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Gender Filter */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Sexe
+                    </label>
+                    <select
+                      value={filters.gender}
+                      onChange={(e) => setFilters({...filters, gender: e.target.value})}
+                      className="w-full border border-gray-300 rounded-lg py-2 px-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="">Tous</option>
+                      <option value="Homme">Homme</option>
+                      <option value="Femme">Femme</option>
+                    </select>
+                  </div>
+
+                  {/* Age Range */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Âge (Min)
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="Ex: 18"
+                      value={filters.ageMin}
+                      onChange={(e) => setFilters({...filters, ageMin: e.target.value})}
+                      className="w-full border border-gray-300 rounded-lg py-2 px-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      min="0"
+                      max="120"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Âge (Max)
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="Ex: 65"
+                      value={filters.ageMax}
+                      onChange={(e) => setFilters({...filters, ageMax: e.target.value})}
+                      className="w-full border border-gray-300 rounded-lg py-2 px-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      min="0"
+                      max="120"
+                    />
+                  </div>
+
+                  {/* Maladie Filter */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Maladie chronique
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Ex: Diabète"
+                      value={filters.maladie}
+                      onChange={(e) => setFilters({...filters, maladie: e.target.value})}
+                      className="w-full border border-gray-300 rounded-lg py-2 px-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+
+                  {/* Date Creation Start */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Date création (début)
+                    </label>
+                    <input
+                      type="date"
+                      value={filters.dateCreationStart}
+                      onChange={(e) => setFilters({...filters, dateCreationStart: e.target.value})}
+                      className="w-full border border-gray-300 rounded-lg py-2 px-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+
+                  {/* Date Creation End */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Date création (fin)
+                    </label>
+                    <input
+                      type="date"
+                      value={filters.dateCreationEnd}
+                      onChange={(e) => setFilters({...filters, dateCreationEnd: e.target.value})}
+                      className="w-full border border-gray-300 rounded-lg py-2 px-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+
+                  {/* Wilaya Filter */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Wilaya
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Ex: Alger"
+                      value={filters.wilaya}
+                      onChange={(e) => setFilters({...filters, wilaya: e.target.value})}
+                      className="w-full border border-gray-300 rounded-lg py-2 px-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+
+                  {/* Phone Number Filter */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Numéro de téléphone
+                    </label>
+                    <input
+                      type="tel"
+                      placeholder="Ex: 0555"
+                      value={filters.phoneNumber}
+                      onChange={(e) => setFilters({...filters, phoneNumber: e.target.value})}
+                      className="w-full border border-gray-300 rounded-lg py-2 px-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Active Filters Summary */}
+                {hasActiveFilters && (
+                  <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-sm text-blue-800">
+                        <Filter className="h-4 w-4" />
+                        <span className="font-medium">
+                          {filteredPatients.length} patient(s) trouvé(s) sur {patients?.length}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
 
         {/* Liste des patients */}
