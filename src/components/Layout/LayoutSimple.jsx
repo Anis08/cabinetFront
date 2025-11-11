@@ -63,6 +63,12 @@ const LayoutSimple = ({ children }) => {
       current: location.pathname === '/home/calendar'
     },
     {
+      name: 'Ordonnances',
+      href: '/home/ordonnances',
+      icon: FileText,
+      current: location.pathname === '/home/ordonnances'
+    },
+    {
       name: 'Publicités',
       href: '/home/ads-management',
       icon: Monitor,
