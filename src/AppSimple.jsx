@@ -23,6 +23,7 @@ import DataProvider from './store/DataProvider';
 import PatientProfile from './pages/PatientProfile';
 import PublicWaitingLine from './pages/PublicWaitingLine';
 import AdsManagement from './pages/AdsManagement';
+import Ordonnances from './pages/Ordonnances';
 
 // Page de test simple
 const TestPage = () => (
@@ -136,6 +137,7 @@ function AppSimple() {
                               <Route path="billing" element={<BillingSimple />} />
                               <Route path="ads-management" element={<AdsManagement />} />
                               <Route path="patient-profile/:patientId" element={<PatientProfile />} />
+                              <Route path="ordonnances" element={<Ordonnances />} />
                               <Route path="*" element={<Navigate to="/home/dashboard" replace />} />
                             </Routes>
                           </LayoutSimple>
