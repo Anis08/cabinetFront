@@ -1030,10 +1030,30 @@ const PatientProfile: React.FC = () => {
                     }} />
                   <YAxis stroke="#6b7280" domain={[80, 160]} />
                   <Tooltip
-                    contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
-                    labelFormatter={(date) => {
-                      const d = new Date(date);
-                      return d.toLocaleDateString('fr-FR')
+                    content={({ active, payload, label }) => {
+                      if (active && payload && payload.length) {
+                        // Find systolique and diastolique
+                        const systolique = payload.find(p => p.dataKey === 'paSystolique');
+                        const diastolique = payload.find(p => p.dataKey === 'paDiastolique');
+                        return (
+                          <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, padding: 12 }}>
+                            <div style={{ fontWeight: 600, marginBottom: 6 }}>
+                              {new Date(label).toLocaleDateString('fr-FR')}
+                            </div>
+                            {systolique && (
+                              <div style={{ color: '#ef4444', fontWeight: 500 }}>
+                                Systolique: {systolique.value} mmHg
+                              </div>
+                            )}
+                            {diastolique && (
+                              <div style={{ color: '#f97316', fontWeight: 500 }}>
+                                Diastolique: {diastolique.value} mmHg
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }
+                      return null;
                     }}
                   />
                   <Legend />
