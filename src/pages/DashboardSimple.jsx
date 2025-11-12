@@ -115,13 +115,7 @@ const DashboardSimple = () => {
       }
 
       // Ultimate fallback: mock data
-      throw new Error('No data sources available')
-      
-    } catch (err) {
-      console.error('Error fetching dashboard data:', err)
-      
-      // Fallback to mock data if all methods fail
-      console.warn('Toutes les sources de données échouées, utilisation des données mockées')
+      console.warn('No data sources available, using mock data')
       setKpis({
         patientsToday: 12,
         waiting: 3,
@@ -135,6 +129,24 @@ const DashboardSimple = () => {
         }
       })
       setError('⚠️ Backend non connecté - Données mockées affichées')
+      setLastRefresh(new Date())
+      
+    } catch (err) {
+      // Catch any unexpected errors
+      console.warn('Unexpected error in dashboard:', err)
+      setKpis({
+        patientsToday: 0,
+        waiting: 0,
+        completed: 0,
+        revenue: 0,
+        trends: {
+          patientsDiff: '0',
+          waitingTime: '-',
+          completionRate: '0%',
+          revenueChange: '0%'
+        }
+      })
+      setError('⚠️ Erreur de chargement')
       setLastRefresh(new Date())
     } finally {
       setLoading(false)

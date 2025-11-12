@@ -60,8 +60,8 @@ const Ordonnances = () => {
       })
 
       if (!response.ok) {
-        if (response.status === 403) {
-          // Token expired, try to refresh
+        if (response.status === 403 || response.status === 401) {
+          // Token expired or unauthorized, try to refresh
           const refreshResponse = await refresh()
           
           if (!refreshResponse) {
@@ -84,7 +84,13 @@ const Ordonnances = () => {
         const data = await response.json()
         setPatients(data.patients || [])
       } else {
-        console.error('Error fetching patients:', response.status, response.statusText)
+        // Silently fail if still unauthorized after refresh attempt
+        if (response.status === 401 || response.status === 403) {
+          console.warn('Unable to fetch patients - authentication issue')
+          setPatients([])
+        } else {
+          console.error('Error fetching patients:', response.status, response.statusText)
+        }
       }
     } catch (error) {
       console.error('Error fetching patients:', error)
