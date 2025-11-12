@@ -1233,14 +1233,14 @@ const PatientProfile: React.FC = () => {
             {ordonnances && ordonnances.length > 0 ? (
               <div className="divide-y divide-gray-200">
                 {ordonnances.map((ord, index) => (
-                  <div key={ord._id || index} className="p-6 hover:bg-gray-50 transition-colors">
+                  <div key={index} className="p-6 hover:bg-gray-50 transition-colors">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-3">
                           <div className="flex items-center gap-2 text-sm">
                             <Calendar className="w-4 h-4 text-gray-400" />
                             <span className="font-medium text-gray-700">
-                              {new Date(ord.date).toLocaleDateString('fr-FR', {
+                              {new Date(ord.dateCreation).toLocaleDateString('fr-FR', {
                                 day: 'numeric',
                                 month: 'long',
                                 year: 'numeric'
@@ -1248,7 +1248,7 @@ const PatientProfile: React.FC = () => {
                             </span>
                           </div>
                           <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
-                            #{ord.numero || ord._id?.slice(-6)}
+                            #{index + 1}
                           </span>
                         </div>
 
@@ -1258,18 +1258,18 @@ const PatientProfile: React.FC = () => {
                               <div className="w-1 h-1 rounded-full bg-purple-500 mt-2"></div>
                               <div>
                                 <span className="font-medium text-gray-800">
-                                  {med.nom} {med.dosage}
+                                  {med.medicament.nom} {med.dosage}
                                 </span>
-                                <span className="text-gray-600"> - {med.frequence}</span>
+                                <span className="text-gray-600"> - {med.posologie}</span>
                                 {med.duree && <span className="text-gray-500"> pendant {med.duree}</span>}
                               </div>
                             </div>
                           ))}
                         </div>
 
-                        {ord.observations && (
+                        {ord.note && (
                           <div className="mt-3 p-3 bg-purple-50 border border-purple-100 rounded-lg">
-                            <p className="text-sm text-gray-700">{ord.observations}</p>
+                            <p className="text-sm text-gray-700">{ord.note}</p>
                           </div>
                         )}
                       </div>
@@ -2038,7 +2038,7 @@ const PatientProfile: React.FC = () => {
                       <div className="flex items-start justify-between mb-2">
                         <div>
                           <h4 className="text-lg font-bold text-gray-900">
-                            {med.nom} {med.dosage}
+                            {med.medicament.nom} {med.dosage}
                           </h4>
                           <p className="text-sm text-gray-600">{med.forme}</p>
                         </div>
@@ -2051,7 +2051,7 @@ const PatientProfile: React.FC = () => {
                         <div className="flex items-center gap-2 text-sm">
                           <Clock className="w-4 h-4 text-purple-600" />
                           <span className="font-medium text-gray-700">
-                            Posologie: <span className="text-gray-900">{med.frequence || med.posologie}</span>
+                            Posologie: <span className="text-gray-900">{med.posologie}</span>
                           </span>
                         </div>
                         <div className="flex items-center gap-2 text-sm">
@@ -2083,12 +2083,12 @@ const PatientProfile: React.FC = () => {
               </div>
 
               {/* Observations */}
-              {(selectedOrdonnance.observations || selectedOrdonnance.note) && (
+              {(selectedOrdonnance.note) && (
                 <div className="mb-6">
                   <h3 className="text-xl font-bold text-gray-800 mb-3">📝 Observations</h3>
                   <div className="p-4 bg-amber-50 border-l-4 border-amber-500 rounded-r-lg">
                     <p className="text-gray-700 whitespace-pre-wrap">
-                      {selectedOrdonnance.observations || selectedOrdonnance.note}
+                      {selectedOrdonnance.note}
                     </p>
                   </div>
                 </div>
