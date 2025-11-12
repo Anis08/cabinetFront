@@ -51,8 +51,8 @@ const Ordonnances = () => {
 
   const fetchPatients = async () => {
     try {
-      const token = localStorage.getItem('token')
-      const response = await fetch(`${baseURL}/medecin/patients`, {
+      const token = localStorage.getItem('accessToken')
+      const response = await fetch(`${baseURL}/medecin/list-patients`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -63,6 +63,8 @@ const Ordonnances = () => {
       if (response.ok) {
         const data = await response.json()
         setPatients(data.patients || [])
+      } else {
+        console.error('Error fetching patients:', response.status)
       }
     } catch (error) {
       console.error('Error fetching patients:', error)
