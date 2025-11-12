@@ -51,20 +51,40 @@ const Ordonnances = () => {
 
   const fetchPatients = async () => {
     try {
-      const token = localStorage.getItem('accessToken')
-      const response = await fetch(`${baseURL}/medecin/list-patients`, {
+      let response = await fetch(`${baseURL}/medecin/list-patients`, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+        credentials: 'include',
       })
+
+      if (!response.ok) {
+        if (response.status === 403) {
+          // Token expired, try to refresh
+          const refreshResponse = await refresh()
+          
+          if (!refreshResponse) {
+            logout()
+            return
+          }
+
+          // Retry with new token
+          response = await fetch(`${baseURL}/medecin/list-patients`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            },
+            credentials: 'include',
+          })
+        }
+      }
 
       if (response.ok) {
         const data = await response.json()
         setPatients(data.patients || [])
       } else {
-        console.error('Error fetching patients:', response.status)
+        console.error('Error fetching patients:', response.status, response.statusText)
       }
     } catch (error) {
       console.error('Error fetching patients:', error)
