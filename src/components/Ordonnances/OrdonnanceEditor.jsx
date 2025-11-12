@@ -52,6 +52,7 @@ const OrdonnanceEditor = ({ isOpen, onClose, patient, onSave }) => {
   // Handle medication selection from cascade selector
   const handleMedicationSelect = (selectedMed) => {
     setCurrentMed({
+      id: selectedMed.id,
       nom: selectedMed.nom,
       dosage: selectedMed.dosage,
       forme: selectedMed.forme,
@@ -101,7 +102,7 @@ const OrdonnanceEditor = ({ isOpen, onClose, patient, onSave }) => {
       return
     }
 
-    setMedicaments([...medicaments, { ...currentMed, id: Date.now() }])
+    setMedicaments([...medicaments, { ...currentMed }])
     setCurrentMed({
       nom: '',
       dosage: '',
@@ -118,63 +119,88 @@ const OrdonnanceEditor = ({ isOpen, onClose, patient, onSave }) => {
   }
 
   const handleSave = async () => {
-    if (medicaments.length === 0) {
-      alert('Veuillez ajouter au moins un médicament')
-      return
-    }
+  if (medicaments.length === 0) {
+    alert('Veuillez ajouter au moins un médicament')
+    return
+  }
 
-    try {
-      const token = localStorage.getItem('token')
-      
-      // Préparer les données pour l'API
-      const ordonnanceData = {
-        patientId: patient._id || patient.id,
-        dateValidite: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // Valide 30 jours
-        note: observations,
-        medicaments: medicaments.map(med => ({
-          medicamentId: med.id || null,
+  try {
+    const token = localStorage.getItem('token')
+    
+    const ordonnanceData = {
+      // ✅ IMPORTANT: Use parseInt for patientId
+      patientId: parseInt(patient.id || patient._id),
+      dateValidite: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      note: observations || '',
+      medicaments: medicaments.map(med => {
+        console.log('Processing existing medication:', med)
+        // If medication has ID (from database)
+        if (med.id || med.medicamentId) {
+          
+          return {
+            medicamentId: parseInt(med.id || med.medicamentId),
+            posologie: med.frequence || med.posologie || '1 fois par jour',
+            duree: med.duree || '7 jours',
+            instructions: med.instructions || med.momentPrise || ''
+          }
+        }
+        
+        // If custom medication (no ID)
+        return {
           nom: med.nom,
           dosage: med.dosage,
           forme: med.forme,
-          posologie: med.frequence,
-          duree: med.duree,
-          momentPrise: med.momentPrise,
-          instructions: med.instructions
-        }))
-      }
-
-      // Appel API vers le backend
-      const response = await fetch(`${baseURL}/medecin/ordonnances`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(ordonnanceData)
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        alert('Ordonnance sauvegardée avec succès dans la base de données!')
-        
-        // Appeler le callback parent avec l'ordonnance complète
-        const ordonnance = {
-          ...data.ordonnance,
-          patientName: patient.fullName,
-          medicaments,
-          observations,
-          template
+          fabricant: med.fabricant || 'Non spécifié',
+          moleculeMere: med.moleculeMere || med.nom,
+          type: med.type || 'Autre',
+          posologie: med.frequence || med.posologie || '1 fois par jour',
+          duree: med.duree || '7 jours',
+          instructions: med.instructions || med.momentPrise || ''
         }
-        onSave(ordonnance)
-      } else {
-        const error = await response.json()
-        alert(`Erreur lors de la sauvegarde: ${error.message || 'Erreur inconnue'}`)
-      }
-    } catch (error) {
-      console.error('Erreur lors de la sauvegarde de l\'ordonnance:', error)
-      alert(`Erreur: ${error.message}`)
+      })
     }
+
+    const response = await fetch(`${baseURL}/medecin/ordonnances`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      credentials: 'include',
+      body: JSON.stringify(ordonnanceData)
+    })
+
+    const data = await response.json()
+
+    if (response.ok) {
+      if (response.status === 201) {
+        alert('Ordonnance créée avec succès!')
+        
+        if (data.demandesCreated && data.demandesCreated.length > 0) {
+          alert(
+            `${data.demandesCreated.length} demande(s) de médicament(s) en attente:\n` +
+            data.demandesCreated.map(d => `- ${d.nom} ${d.dosage}`).join('\n')
+          )
+        }
+        
+        if (onSave) onSave(data.ordonnance)
+        if (onClose) onClose()
+      } else if (response.status === 202) {
+        alert(
+          'Demandes créées. L\'ordonnance sera disponible après validation.\n' +
+          data.demandes.map(d => `- ${d.nom} ${d.dosage}`).join('\n')
+        )
+        if (onClose) onClose()
+      }
+    } else {
+      alert(`Erreur: ${data.message || 'Erreur inconnue'}`)
+    }
+  } catch (error) {
+    console.error('Erreur:', error)
+    alert(`Erreur: ${error.message}`)
   }
+}
+
 
   const handleSaveTemplate = (newTemplate) => {
     setTemplate(newTemplate)
