@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, Plus, Trash2, Save, Printer, FileText, Settings as SettingsIcon, Download } from 'lucide-react'
 import PrescriptionTemplateSettings from './PrescriptionTemplateSettings'
 import PrescriptionPreview from './PrescriptionPreview'
-import MedicationSelector from './MedicationSelectorCascade'
+import MedicationSelector from './MedicationSelector'
 import { exportPrescriptionToPDF, printPrescription } from '../../utils/pdfExport'
 
 const OrdonnanceEditor = ({ isOpen, onClose, patient, onSave }) => {
@@ -234,10 +234,10 @@ const OrdonnanceEditor = ({ isOpen, onClose, patient, onSave }) => {
                 </p>
               </div>
 
-              {/* Medication Selector with Cascade */}
+              {/* Medication Selector with Autocomplete */}
               <div className="mb-6">
                 <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                  💊 Rechercher et Ajouter un médicament
+                  💊 Rechercher un médicament
                 </h3>
 
                 <MedicationSelector 
@@ -246,47 +246,25 @@ const OrdonnanceEditor = ({ isOpen, onClose, patient, onSave }) => {
                 />
               </div>
 
-              {/* Medicament Details Form - Only shown if medication selected */}
-              {currentMed.nom && (
-                <div className="mb-6">
-                  <h3 className="font-semibold text-gray-800 mb-4">
-                    Détails de prescription sélectionnés
-                  </h3>
+              {/* Medicament Details Form */}
+              <div className="mb-6">
+                <h3 className="font-semibold text-gray-800 mb-4">
+                  Compléter les détails de prescription
+                </h3>
 
-                  <div className="space-y-4">
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                      <h4 className="font-bold text-gray-900 text-lg mb-2">{currentMed.nom}</h4>
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div><span className="text-gray-600">Dosage:</span> <span className="font-semibold">{currentMed.dosage}</span></div>
-                        <div><span className="text-gray-600">Forme:</span> <span className="font-semibold">{currentMed.forme}</span></div>
-                        <div><span className="text-gray-600">Fréquence:</span> <span className="font-semibold">{currentMed.frequence}</span></div>
-                        <div><span className="text-gray-600">Durée:</span> <span className="font-semibold">{currentMed.duree}</span></div>
-                      </div>
-                      {currentMed.momentPrise && (
-                        <div className="mt-2 text-sm">
-                          <span className="text-gray-600">Moment:</span> <span className="font-semibold">{currentMed.momentPrise}</span>
-                        </div>
-                      )}
-                      {currentMed.instructions && (
-                        <div className="mt-2 text-sm">
-                          <span className="text-gray-600">Instructions:</span> <span className="font-semibold">{currentMed.instructions}</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Allow manual adjustments if needed */}
-                    <div className="relative">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Nom du médicament *
-                      </label>
-                      <input
-                        type="text"
-                        value={currentMed.nom}
-                        onChange={(e) => setCurrentMed({...currentMed, nom: e.target.value})}
-                        placeholder="Ex: Doliprane"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </div>
+                <div className="space-y-4">
+                  <div className="relative">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Nom du médicament *
+                    </label>
+                    <input
+                      type="text"
+                      value={currentMed.nom}
+                      onChange={(e) => setCurrentMed({...currentMed, nom: e.target.value})}
+                      placeholder="Ex: Doliprane"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -380,16 +358,15 @@ const OrdonnanceEditor = ({ isOpen, onClose, patient, onSave }) => {
                     />
                   </div>
 
-                    <button
-                      onClick={handleAddMedicament}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                    >
-                      <Plus className="w-4 h-4" />
-                      Ajouter ce médicament
-                    </button>
-                  </div>
+                  <button
+                    onClick={handleAddMedicament}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Ajouter ce médicament
+                  </button>
                 </div>
-              )}
+              </div>
 
               {/* Observations */}
               <div className="mb-6">
