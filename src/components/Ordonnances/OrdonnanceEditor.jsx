@@ -5,6 +5,7 @@ import PrescriptionTemplateSettings from './PrescriptionTemplateSettings'
 import PrescriptionPreview from './PrescriptionPreview'
 import MedicationSelector from './MedicationSelector'
 import { exportPrescriptionToPDF, printPrescription } from '../../utils/pdfExport'
+import { baseURL } from '../../config'
 
 const OrdonnanceEditor = ({ isOpen, onClose, patient, onSave }) => {
   const [medicaments, setMedicaments] = useState([])
@@ -127,22 +128,63 @@ const OrdonnanceEditor = ({ isOpen, onClose, patient, onSave }) => {
     setMedicaments(medicaments.filter(m => m.id !== id))
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (medicaments.length === 0) {
       alert('Veuillez ajouter au moins un médicament')
       return
     }
 
-    const ordonnance = {
-      patientId: patient._id || patient.id,
-      patientName: patient.fullName,
-      date: new Date().toISOString(),
-      medicaments,
-      observations,
-      template // Save template configuration with prescription
-    }
+    try {
+      const token = localStorage.getItem('token')
+      
+      // Préparer les données pour l'API
+      const ordonnanceData = {
+        patientId: patient._id || patient.id,
+        dateValidite: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // Valide 30 jours
+        note: observations,
+        medicaments: medicaments.map(med => ({
+          medicamentId: med.id || null,
+          nom: med.nom,
+          dosage: med.dosage,
+          forme: med.forme,
+          posologie: med.frequence,
+          duree: med.duree,
+          momentPrise: med.momentPrise,
+          instructions: med.instructions
+        }))
+      }
 
-    onSave(ordonnance)
+      // Appel API vers le backend
+      const response = await fetch(`${baseURL}/medecin/ordonnances`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(ordonnanceData)
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        alert('Ordonnance sauvegardée avec succès dans la base de données!')
+        
+        // Appeler le callback parent avec l'ordonnance complète
+        const ordonnance = {
+          ...data.ordonnance,
+          patientName: patient.fullName,
+          medicaments,
+          observations,
+          template
+        }
+        onSave(ordonnance)
+      } else {
+        const error = await response.json()
+        alert(`Erreur lors de la sauvegarde: ${error.message || 'Erreur inconnue'}`)
+      }
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde de l\'ordonnance:', error)
+      alert(`Erreur: ${error.message}`)
+    }
   }
 
   const handleSaveTemplate = (newTemplate) => {
