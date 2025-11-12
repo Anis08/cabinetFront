@@ -121,8 +121,6 @@ const Ordonnances = () => {
 
   const handleSaveOrdonnance = async (ordonnance) => {
     try {
-      // API call will go here
-      console.log('Saving ordonnance:', ordonnance)
       
       // For now, add to local state
       const newOrd = {

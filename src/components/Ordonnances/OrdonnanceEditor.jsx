@@ -133,7 +133,7 @@ const OrdonnanceEditor = ({ isOpen, onClose, patient, onSave }) => {
       dateValidite: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       note: observations || '',
       medicaments: medicaments.map(med => {
-        console.log('Processing existing medication:', med)
+
         // If medication has ID (from database)
         if (med.id || med.medicamentId) {
           
@@ -141,7 +141,9 @@ const OrdonnanceEditor = ({ isOpen, onClose, patient, onSave }) => {
             medicamentId: parseInt(med.id || med.medicamentId),
             posologie: med.frequence || med.posologie || '1 fois par jour',
             duree: med.duree || '7 jours',
-            instructions: med.instructions || med.momentPrise || ''
+            instructions: med.instructions || med.momentPrise || '',
+            dosage: med.dosage,
+            forme: med.forme,
           }
         }
         
