@@ -583,7 +583,7 @@ const PatientProfile: React.FC = () => {
         const data = await response.json();
         setPatient(data.patient);
         setNextAppointment(data.nextAppointment);
-
+        setOrdonnances(data.ordonnances || []);
 
       }
       catch (error) {
