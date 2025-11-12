@@ -396,8 +396,8 @@ const PatientProfile: React.FC = () => {
       };
     }
 
-    const completed = patient.rendezVous.filter(rdv => rdv.status === 'Terminé').length;
-    const missed = patient.rendezVous.filter(rdv => rdv.status === 'Manqué').length;
+    const completed = patient.rendezVous.filter(rdv => rdv.status === 'Completed').length;
+    const missed = patient.rendezVous.filter(rdv => rdv.status === 'Cancelled').length;
     
     return {
       total: patient.rendezVous.length,
