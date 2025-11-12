@@ -7,8 +7,8 @@ import { useData } from '../store/DataProvider'
 
 const QueueSimple = () => {
   const [currentTime, setCurrentTime] = useState(new Date())
-  const { todayAppointments, setTodayAppointments, completedAppointments, setCompletedAppointments,  setAveragePaid, setCaDay, setCaWeek,
-  patients, setPatients, setAverageAge, setNewPatientsThisMonth, setPatientsViewedThisWeek  } = useData();
+  const { todayAppointments, setTodayAppointments, completedAppointments, setCompletedAppointments, setAveragePaid, setCaDay, setCaWeek,
+    patients, setPatients, setAverageAge, setNewPatientsThisMonth, setPatientsViewedThisWeek } = useData();
   const { logout, refresh } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const dialogRef = useRef(null);
@@ -46,132 +46,132 @@ const QueueSimple = () => {
     return () => clearInterval(timer)
   }, [])
 
-   useEffect(() => {
-        const getCompletedAppointments = async () => {
-          if (completedAppointments) return;
-          try {
-            let response = await fetch(`${baseURL}/medecin/completed-appointments`, {
+  useEffect(() => {
+    const getCompletedAppointments = async () => {
+      if (completedAppointments) return;
+      try {
+        let response = await fetch(`${baseURL}/medecin/completed-appointments`, {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          if (response.status == 403) {
+            logout();
+            return
+          }
+          if (response.status == 401) {
+            const refreshResponse = await refresh();
+            if (!refreshResponse) {
+              logout();
+              return
+            }
+
+
+            response = await fetch(`${baseURL}/medecin/completed-appointments`, {
               method: 'GET',
               headers: {
                 Authorization: `Bearer ${localStorage.getItem('token')}`,
               },
               credentials: 'include',
             });
-    
-            if (!response.ok) {
-              if (response.status == 403) {
-                logout();
-                return
-              }
-              if (response.status == 401) {
-                const refreshResponse = await refresh();
-                if (!refreshResponse) {
-                  logout();
-                  return
-                }
-    
-    
-                response = await fetch(`${baseURL}/medecin/completed-appointments`, {
-                  method: 'GET',
-                  headers: {
-                    Authorization: `Bearer ${localStorage.getItem('token')}`,
-                  },
-                  credentials: 'include',
-                });
-    
-              }
-    
-              if (response.status === 404) {
-    
-                alert('Aucun rendez-vous trouvé.');
-                return;
-              }
-    
-    
-    
-              if (response.status === 500) {
-    
-                alert('Le serveur a rencontré une erreur. Veuillez réessayer plus tard.');
-                return;
-              }
-            }
-    
-            const data = await response.json();
-    
-            setCompletedAppointments(data.completedApointments);
+
           }
-          catch (error) {
-            return { error: 'Une erreur est survenue lors de la création du patient.' }
+
+          if (response.status === 404) {
+
+            alert('Aucun rendez-vous trouvé.');
+            return;
+          }
+
+
+
+          if (response.status === 500) {
+
+            alert('Le serveur a rencontré une erreur. Veuillez réessayer plus tard.');
+            return;
           }
         }
-    
-        getCompletedAppointments();
-      }, [])
 
-      useEffect(() => {
-          const getPatients = async () => {
-            if(patients) return;
-            try {
-            let response = await fetch(`${baseURL}/medecin/list-patients`, {
-              method: 'GET',      
+        const data = await response.json();
+
+        setCompletedAppointments(data.completedApointments);
+      }
+      catch (error) {
+        return { error: 'Une erreur est survenue lors de la création du patient.' }
+      }
+    }
+
+    getCompletedAppointments();
+  }, [])
+
+  useEffect(() => {
+    const getPatients = async () => {
+      if (patients) return;
+      try {
+        let response = await fetch(`${baseURL}/medecin/list-patients`, {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          if (response.status == 403) {
+            logout();
+            return
+          }
+          if (response.status == 401) {
+            const refreshResponse = await refresh();
+            if (!refreshResponse) {
+              logout();
+              return
+            }
+
+
+            response = await fetch(`${baseURL}/medecin/list-patients`, {
+              method: 'GET',
               headers: {
                 Authorization: `Bearer ${localStorage.getItem('token')}`,
               },
               credentials: 'include',
             });
-      
-            if (!response.ok) {
-              if (response.status == 403) {
-                logout();
-                return
-              }
-              if (response.status == 401) {
-                const refreshResponse = await refresh();
-                if (!refreshResponse) {
-                  logout();
-                  return
-                }
-      
-      
-                response = await fetch(`${baseURL}/medecin/list-patients`, {
-                  method: 'GET',            
-                  headers: {
-                    Authorization: `Bearer ${localStorage.getItem('token')}`,
-                  },
-                  credentials: 'include',
-                });
-      
-              }
-      
-              if (response.status === 404) {
-      
-                alert('Aucun patient trouvé.');
-                return;
-              }
-      
-      
-      
-              if (response.status === 500) {
-      
-                alert('Le serveur a rencontré une erreur. Veuillez réessayer plus tard.');
-                return;
-              }
-            }
-      
-            const data = await response.json();
-      
-            setPatients(data.patients);
-            setAverageAge(data.averageAge);
-            setNewPatientsThisMonth(data.newPatientsThisMonth);
-            setPatientsViewedThisWeek(data.patientsViewedThisWeek);
+
           }
-          catch (error) {
-            return { error: 'Une erreur est survenue lors de la création du patient.' }
+
+          if (response.status === 404) {
+
+            alert('Aucun patient trouvé.');
+            return;
           }
+
+
+
+          if (response.status === 500) {
+
+            alert('Le serveur a rencontré une erreur. Veuillez réessayer plus tard.');
+            return;
           }
-      
-          getPatients();
-        }, [])
+        }
+
+        const data = await response.json();
+
+        setPatients(data.patients);
+        setAverageAge(data.averageAge);
+        setNewPatientsThisMonth(data.newPatientsThisMonth);
+        setPatientsViewedThisWeek(data.patientsViewedThisWeek);
+      }
+      catch (error) {
+        return { error: 'Une erreur est survenue lors de la création du patient.' }
+      }
+    }
+
+    getPatients();
+  }, [])
 
   // Données mockées de la file d'attente
   const mockQueue = [
@@ -327,7 +327,7 @@ const QueueSimple = () => {
 
 
   const NewRendezVous = async (rendezVousId) => {
-    
+
     if (!rendezVousId) {
       return { error: 'Tous les champs sont obligatoires.' }
     }
@@ -486,7 +486,7 @@ const QueueSimple = () => {
       const data = await response.json();
 
       setTodayAppointments(
-        [...todayAppointments, data.rendezVous ]
+        [...todayAppointments, data.rendezVous]
       );
 
 
@@ -502,7 +502,7 @@ const QueueSimple = () => {
 
   const addToInProgress = async (rendezVousId) => {
 
-    if(todayAppointments.find(ap => ap.state === 'InProgress')){
+    if (todayAppointments.find(ap => ap.state === 'InProgress')) {
       alert('Un patient est déjà en consultation. Veuillez terminer la consultation en cours avant d\'en commencer une nouvelle.');
       return;
     }
@@ -593,6 +593,98 @@ const QueueSimple = () => {
 
   }
 
+
+  const handleReturnToQueue = async (rendezVousId) => {
+
+    const confirmed = window.confirm("Êtes-vous sûr de vouloir annuler et retourner le patient à la file d'attente ?");
+    if (!confirmed) return;
+    
+    if (!rendezVousId) {
+      return { error: 'Tous les champs sont obligatoires.' }
+    }
+
+    try {
+      let response = await fetch(`${baseURL}/medecin/return-queue`, {
+        method: 'POST',
+        body: JSON.stringify({
+          rendezVousId
+        }),
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          "Content-Type": "application/json",
+        },
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        if (response.status == 403) {
+          logout();
+          return
+        }
+        if (response.status == 401) {
+          const refreshResponse = await refresh();
+          if (!refreshResponse) {
+            logout();
+            return
+          }
+
+
+          response = await fetch(`${baseURL}/medecin/return-queue`, {
+            method: 'POST',
+            body: JSON.stringify({
+              rendezVousId
+            }),
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
+              "Content-Type": "application/json",
+            },
+            credentials: 'include',
+          });
+
+        }
+
+        if (response.status === 400) {
+
+          alert('Requete invalide');
+          return;
+        }
+
+        if (response.status === 409) {
+
+          alert('Un rendez-vous identique existe déjà pour ce patient à cette date.');
+          return;
+        }
+
+
+
+        if (response.status === 500) {
+
+          alert('Le serveur a rencontré une erreur. Veuillez réessayer plus tard.');
+          return;
+        }
+      }
+
+      const data = await response.json();
+
+      setTodayAppointments(
+
+        todayAppointments.map(ap => {
+          if (ap.id === rendezVousId) {
+            return { ...ap, state: 'Waiting', startTime: null };
+          }
+          return ap;
+        })
+
+      );
+
+
+    }
+    catch (error) {
+      return { error: 'Une erreur est survenue lors de la création du rendez-vous.' }
+    }
+
+  }
+
   // Function to finish consultation (update backend)
   const finishConsultation = async (rendezVousId) => {
     setFinishEnabled(false)
@@ -659,7 +751,7 @@ const QueueSimple = () => {
             credentials: 'include',
           });
         }
-        
+
         if (response.status === 400 || response.status === 404) {
           const data = await response.json();
           alert(data.message || 'Requête invalide.');
@@ -677,27 +769,28 @@ const QueueSimple = () => {
       setTodayAppointments(
         todayAppointments.map(ap => {
           if (ap.id === rendezVousId) {
-            return { ...ap, state: 'Completed',
-                            endTime: new Date().toISOString(),
-                            paid: parseInt(finishForm.paye),
-                            note: finishForm.note || null,
-                            poids: finishForm.poids ? parseFloat(finishForm.poids) : null,
-                            // enregistrer localement les nouveaux champs
-                            pcm: finishForm.pcm !== '' ? parseFloat(finishForm.pcm) : null,
-                            imc: finishForm.imc !== '' ? parseFloat(finishForm.imc) : null,
-                            pulse: finishForm.pulse !== '' ? parseInt(finishForm.pulse, 10) : null,
-                            paSystolique: finishForm.paSystolique !== '' ? parseInt(finishForm.paSystolique, 10) : null,
-                            paDiastolique: finishForm.paDiastolique !== '' ? parseInt(finishForm.paDiastolique, 10) : null,
-                          };
+            return {
+              ...ap, state: 'Completed',
+              endTime: new Date().toISOString(),
+              paid: parseInt(finishForm.paye),
+              note: finishForm.note || null,
+              poids: finishForm.poids ? parseFloat(finishForm.poids) : null,
+              // enregistrer localement les nouveaux champs
+              pcm: finishForm.pcm !== '' ? parseFloat(finishForm.pcm) : null,
+              imc: finishForm.imc !== '' ? parseFloat(finishForm.imc) : null,
+              pulse: finishForm.pulse !== '' ? parseInt(finishForm.pulse, 10) : null,
+              paSystolique: finishForm.paSystolique !== '' ? parseInt(finishForm.paSystolique, 10) : null,
+              paDiastolique: finishForm.paDiastolique !== '' ? parseInt(finishForm.paDiastolique, 10) : null,
+            };
           }
           return ap;
         })
       );
-   
-        setCompletedAppointments([
-          data.completed,
-          ...completedAppointments,
-        ]);
+
+      setCompletedAppointments([
+        data.completed,
+        ...completedAppointments,
+      ]);
 
       setFinishForm({
         paye: '',
@@ -721,69 +814,69 @@ const QueueSimple = () => {
   };
 
   useEffect(() => {
-        const getCompletedAppointments = async () => {
-          if (completedAppointments) return;
-          try {
-            let response = await fetch(`${baseURL}/medecin/completed-appointments`, {
+    const getCompletedAppointments = async () => {
+      if (completedAppointments) return;
+      try {
+        let response = await fetch(`${baseURL}/medecin/completed-appointments`, {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          if (response.status == 403) {
+            logout();
+            return
+          }
+          if (response.status == 401) {
+            const refreshResponse = await refresh();
+            if (!refreshResponse) {
+              logout();
+              return
+            }
+
+
+            response = await fetch(`${baseURL}/medecin/completed-appointments`, {
               method: 'GET',
               headers: {
                 Authorization: `Bearer ${localStorage.getItem('token')}`,
               },
               credentials: 'include',
             });
-    
-            if (!response.ok) {
-              if (response.status == 403) {
-                logout();
-                return
-              }
-              if (response.status == 401) {
-                const refreshResponse = await refresh();
-                if (!refreshResponse) {
-                  logout();
-                  return
-                }
-    
-    
-                response = await fetch(`${baseURL}/medecin/completed-appointments`, {
-                  method: 'GET',
-                  headers: {
-                    Authorization: `Bearer ${localStorage.getItem('token')}`,
-                  },
-                  credentials: 'include',
-                });
-    
-              }
-    
-              if (response.status === 404) {
-    
-                alert('Aucun rendez-vous trouvé.');
-                return;
-              }
-    
-    
-    
-              if (response.status === 500) {
-    
-                alert('Le serveur a rencontré une erreur. Veuillez réessayer plus tard.');
-                return;
-              }
-            }
-    
-            const data = await response.json();
-    
-            setCompletedAppointments(data.completedApointments);
-            setAveragePaid(data.avgPaid);
-            setCaDay(data.todayRevenue);
-            setCaWeek(data.weekRevenue);
+
           }
-          catch (error) {
-            return { error: 'Une erreur est survenue lors de la création du patient.' }
+
+          if (response.status === 404) {
+
+            alert('Aucun rendez-vous trouvé.');
+            return;
+          }
+
+
+
+          if (response.status === 500) {
+
+            alert('Le serveur a rencontré une erreur. Veuillez réessayer plus tard.');
+            return;
           }
         }
-    
-        getCompletedAppointments();
-      }, [])
+
+        const data = await response.json();
+
+        setCompletedAppointments(data.completedApointments);
+        setAveragePaid(data.avgPaid);
+        setCaDay(data.todayRevenue);
+        setCaWeek(data.weekRevenue);
+      }
+      catch (error) {
+        return { error: 'Une erreur est survenue lors de la création du patient.' }
+      }
+    }
+
+    getCompletedAppointments();
+  }, [])
 
   return (
     <>
@@ -935,6 +1028,14 @@ const QueueSimple = () => {
                       <span>en consultation</span>
                     </div>
 
+                    {/* Annuler (retourner à la ligne d’attente) */}
+                    <button
+                      className="ml-2 px-3 py-2 rounded bg-yellow-500 text-white hover:bg-yellow-600 transition-colors text-xs font-semibold"
+                      onClick={() => handleReturnToQueue(todayAppointments.find(ap => ap.state === 'InProgress').id)}
+                    >
+                      Annuler
+                    </button>
+
 
                     {/* Terminer consultation button */}
                     <button
@@ -1067,7 +1168,7 @@ const QueueSimple = () => {
                           <Phone className="h-4 w-4" />
                         </button>
                         <button onClick={() => addToInProgress(item.id)}
-                         className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors">
+                          className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors">
                           <Play className="h-4 w-4" />
                         </button>
                       </div>
@@ -1127,12 +1228,12 @@ const QueueSimple = () => {
 
                         {/* Actions */}
                         <div className="flex items-center space-x-1">
-                          <button 
-                          className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                          <button
+                            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
                             <Phone className="h-4 w-4" />
                           </button>
-                          <button onClick={() => NewRendezVous(item.id)}  
-                          className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors">
+                          <button onClick={() => NewRendezVous(item.id)}
+                            className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors">
                             <Play className="h-4 w-4" />
                           </button>
                         </div>
