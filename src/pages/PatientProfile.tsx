@@ -551,7 +551,6 @@ const PatientProfile: React.FC = () => {
               return
             }
 
-
             response = await fetch(`${baseURL}/medecin/profile-patient/${patientId}`, {
               method: 'GET',
               headers: {
@@ -559,20 +558,22 @@ const PatientProfile: React.FC = () => {
               },
               credentials: 'include',
             });
-
           }
 
-          if (response.status === 404) {
+          // Check response status after potential token refresh
+          if (!response.ok) {
+            if (response.status === 404) {
+              alert('Aucun patient trouvé.');
+              return;
+            }
 
-            alert('Aucun patient trouvé.');
-            return;
-          }
+            if (response.status === 500) {
+              alert('Le serveur a rencontré une erreur. Veuillez réessayer plus tard.');
+              return;
+            }
 
-
-
-          if (response.status === 500) {
-
-            alert('Le serveur a rencontré une erreur. Veuillez réessayer plus tard.');
+            // Handle any other error status
+            alert(`Erreur ${response.status}: Impossible de charger les données du patient.`);
             return;
           }
         }
@@ -584,7 +585,12 @@ const PatientProfile: React.FC = () => {
 
       }
       catch (error) {
-        return { error: 'Une erreur est survenue lors de la création du patient.' }
+        console.error('Erreur lors du chargement du patient:', error);
+        if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+          alert('Impossible de contacter le serveur. Vérifiez que le backend est démarré sur le port 4000.');
+        } else {
+          alert('Une erreur inattendue est survenue lors du chargement du patient.');
+        }
       }
     }
 
