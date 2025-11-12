@@ -10,8 +10,6 @@ const OrdonnanceEditor = ({ isOpen, onClose, patient, onSave }) => {
   const [medicaments, setMedicaments] = useState([])
   const [observations, setObservations] = useState('')
   const [showSettings, setShowSettings] = useState(false)
-  const [showSuggestions, setShowSuggestions] = useState(false)
-  const [suggestions, setSuggestions] = useState([])
   const [medicamentsDB, setMedicamentsDB] = useState([])
   const [template, setTemplate] = useState({
     logo: '',
@@ -61,44 +59,18 @@ const OrdonnanceEditor = ({ isOpen, onClose, patient, onSave }) => {
     }
   }, [])
 
-  const handleMedicamentSearch = (searchText) => {
-    if (searchText.length < 2) {
-      setSuggestions([])
-      return
-    }
-
-    const filtered = medicamentsDB.filter(med =>
-      med.nom.toLowerCase().includes(searchText.toLowerCase()) ||
-      med.moleculeMere.toLowerCase().includes(searchText.toLowerCase())
-    ).slice(0, 5)
-
-    setSuggestions(filtered)
-  }
-
-  const handleSelectMedicament = (med) => {
+  // Handle medication selection from cascade selector
+  const handleMedicationSelect = (selectedMed) => {
     setCurrentMed({
-      nom: med.nom,
-      dosage: med.dosage,
-      forme: med.forme,
-      frequence: med.frequence || '3 fois par jour',
-      duree: '',
-      momentPrise: 'Après les repas',
-      instructions: ''
+      nom: selectedMed.nom,
+      dosage: selectedMed.dosage,
+      forme: selectedMed.forme,
+      frequence: selectedMed.frequence || '3 fois par jour',
+      duree: selectedMed.duree || '',
+      momentPrise: selectedMed.momentPrise || 'Après les repas',
+      instructions: selectedMed.instructions || ''
     })
-    setShowSuggestions(false)
-    setSuggestions([])
   }
-
-  // Close suggestions when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (showSuggestions && !event.target.closest('.medication-autocomplete')) {
-        setShowSuggestions(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [showSuggestions])
 
   const formes = ['Comprimé', 'Gélule', 'Sirop', 'Suppositoire', 'Injectable', 'Crème', 'Pommade']
   const momentsPrise = ['Avant les repas', 'Après les repas', 'Pendant les repas', 'À jeun', 'Au coucher', 'Matin et soir']
@@ -262,68 +234,59 @@ const OrdonnanceEditor = ({ isOpen, onClose, patient, onSave }) => {
                 </p>
               </div>
 
-              {/* Medication Selector */}
+              {/* Medication Selector with Cascade */}
               <div className="mb-6">
                 <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
                   💊 Rechercher et Ajouter un médicament
                 </h3>
 
                 <MedicationSelector 
-                  onSelect={(med) => setCurrentMed(med)}
+                  onSelect={handleMedicationSelect}
                   medicamentsDB={medicamentsDB}
                 />
               </div>
 
-              {/* Medicament Details Form */}
-              <div className="mb-6">
-                <h3 className="font-semibold text-gray-800 mb-4">
-                  Compléter les détails de prescription
-                </h3>
+              {/* Medicament Details Form - Only shown if medication selected */}
+              {currentMed.nom && (
+                <div className="mb-6">
+                  <h3 className="font-semibold text-gray-800 mb-4">
+                    Détails de prescription sélectionnés
+                  </h3>
 
-                <div className="space-y-4">
-                  <div className="relative medication-autocomplete">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Nom du médicament * 
-                      <span className="text-xs text-gray-500 ml-2">(Commencez à taper pour voir les suggestions)</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={currentMed.nom}
-                      onChange={(e) => {
-                        setCurrentMed({...currentMed, nom: e.target.value})
-                        handleMedicamentSearch(e.target.value)
-                      }}
-                      onFocus={() => {
-                        if (currentMed.nom.length >= 2) {
-                          handleMedicamentSearch(currentMed.nom)
-                          setShowSuggestions(true)
-                        }
-                      }}
-                      placeholder="Ex: Doliprane"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      autoComplete="off"
-                    />
-                    {showSuggestions && suggestions.length > 0 && (
-                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                        {suggestions.map((med, index) => (
-                          <button
-                            key={index}
-                            type="button"
-                            onClick={() => handleSelectMedicament(med)}
-                            className="w-full text-left px-4 py-2 hover:bg-blue-50 border-b border-gray-100 last:border-b-0 transition-colors"
-                          >
-                            <div className="font-medium text-gray-900">{med.nom}</div>
-                            <div className="text-xs text-gray-500">
-                              {med.dosage} - {med.forme} - {med.fabricant}
-                            </div>
-                            <div className="text-xs text-blue-600 mt-0.5">
-                              {med.moleculeMere}
-                            </div>
-                          </button>
-                        ))}
+                  <div className="space-y-4">
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <h4 className="font-bold text-gray-900 text-lg mb-2">{currentMed.nom}</h4>
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div><span className="text-gray-600">Dosage:</span> <span className="font-semibold">{currentMed.dosage}</span></div>
+                        <div><span className="text-gray-600">Forme:</span> <span className="font-semibold">{currentMed.forme}</span></div>
+                        <div><span className="text-gray-600">Fréquence:</span> <span className="font-semibold">{currentMed.frequence}</span></div>
+                        <div><span className="text-gray-600">Durée:</span> <span className="font-semibold">{currentMed.duree}</span></div>
                       </div>
-                    )}
-                  </div>
+                      {currentMed.momentPrise && (
+                        <div className="mt-2 text-sm">
+                          <span className="text-gray-600">Moment:</span> <span className="font-semibold">{currentMed.momentPrise}</span>
+                        </div>
+                      )}
+                      {currentMed.instructions && (
+                        <div className="mt-2 text-sm">
+                          <span className="text-gray-600">Instructions:</span> <span className="font-semibold">{currentMed.instructions}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Allow manual adjustments if needed */}
+                    <div className="relative">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Nom du médicament *
+                      </label>
+                      <input
+                        type="text"
+                        value={currentMed.nom}
+                        onChange={(e) => setCurrentMed({...currentMed, nom: e.target.value})}
+                        placeholder="Ex: Doliprane"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -417,15 +380,16 @@ const OrdonnanceEditor = ({ isOpen, onClose, patient, onSave }) => {
                     />
                   </div>
 
-                  <button
-                    onClick={handleAddMedicament}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Ajouter ce médicament
-                  </button>
+                    <button
+                      onClick={handleAddMedicament}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Ajouter ce médicament
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Observations */}
               <div className="mb-6">
