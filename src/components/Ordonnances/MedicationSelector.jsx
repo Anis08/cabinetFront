@@ -1,11 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Search, AlertCircle, Send, ChevronRight } from 'lucide-react'
+import { Search, AlertCircle, Send, ChevronRight, Loader } from 'lucide-react'
+import { baseURL } from '../../config'
 
-const MedicationSelector = ({ onSelect, medicamentsDB }) => {
+const MedicationSelector = ({ onSelect }) => {
   const [searchTerm, setSearchTerm] = useState('')
+  const [medicaments, setMedicaments] = useState([])
   const [filteredMeds, setFilteredMeds] = useState([])
   const [expandedMed, setExpandedMed] = useState(null)
   const [showDropdown, setShowDropdown] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [showRequestModal, setShowRequestModal] = useState(false)
   const [requestData, setRequestData] = useState({
     nom: '',
@@ -24,31 +28,56 @@ const MedicationSelector = ({ onSelect, medicamentsDB }) => {
   const formes = ['Comprimé', 'Gélule', 'Sirop', 'Suppositoire', 'Injectable', 'Crème', 'Pommade', 'Aérosol', 'Suspension buvable', 'Poudre pour suspension', 'Comprimé effervescent']
   const types = ['Antalgique', 'Antibiotique', 'Anti-inflammatoire', 'Antiagrégant', 'Anti-acide', 'Antihistaminique', 'Bronchodilatateur', 'Corticoïde', 'Antidiabétique', 'Antihypertenseur', 'Hypolipémiant', 'Hormone thyroïdienne', 'Anti-diarrhéique', 'Antispasmodique', 'Veinotonique']
 
+  // Fetch all medications from API on component mount
+  useEffect(() => {
+    const fetchMedicaments = async () => {
+      try {
+        setLoading(true)
+        const token = localStorage.getItem('token')
+        
+        const response = await fetch(`${baseURL}/medecin/medicaments/`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        })
+
+        if (!response.ok) {
+          throw new Error('Erreur lors du chargement des médicaments')
+        }
+
+        const data = await response.json()
+        setMedicaments(data.medicaments || [])
+        setError(null)
+      } catch (err) {
+        console.error('Erreur chargement médicaments:', err)
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchMedicaments()
+  }, [])
+
   // Search medications in database
   useEffect(() => {
-    if (searchTerm.length >= 2) {
-      const filtered = medicamentsDB.filter(med =>
+    if (searchTerm.length >= 2 && medicaments.length > 0) {
+      const filtered = medicaments.filter(med =>
         med.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        med.moleculeMere.toLowerCase().includes(searchTerm.toLowerCase())
+        med.moleculeMereRel.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        med.type.toLowerCase().includes(searchTerm.toLowerCase())
       )
       
-      // Group by medication name
-      const groupedMeds = filtered.reduce((acc, med) => {
-        if (!acc[med.nom]) {
-          acc[med.nom] = []
-        }
-        acc[med.nom].push(med)
-        return acc
-      }, {})
-      
-      setFilteredMeds(Object.entries(groupedMeds))
+      setFilteredMeds(filtered)
       setShowDropdown(true)
     } else {
       setFilteredMeds([])
       setShowDropdown(false)
       setExpandedMed(null)
     }
-  }, [searchTerm, medicamentsDB])
+  }, [searchTerm, medicaments])
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -69,12 +98,15 @@ const MedicationSelector = ({ onSelect, medicamentsDB }) => {
   }, [])
 
   // Select medication with dosage
-  const handleSelectDosage = (med) => {
+  const handleSelectDosage = (medicament, dosage) => {
     onSelect({
-      nom: med.nom,
-      dosage: med.dosage,
-      forme: med.forme,
-      frequence: med.frequence || '3 fois par jour',
+      id: medicament.id,
+      nom: medicament.nom,
+      dosage: dosage.valeur,
+      forme: 'Comprimé', // Default, can be customized later
+      moleculeMere: medicament.moleculeMereRel.nom,
+      type: medicament.type,
+      frequence: '3 fois par jour',
       duree: '',
       momentPrise: 'Après les repas',
       instructions: '',
@@ -166,34 +198,56 @@ const MedicationSelector = ({ onSelect, medicamentsDB }) => {
           />
         </div>
 
+        {/* Loading State */}
+        {loading && (
+          <div className="absolute z-50 w-full mt-2 bg-white border-2 border-gray-200 rounded-lg shadow-xl p-4">
+            <div className="flex items-center justify-center gap-2 text-gray-600">
+              <Loader className="w-5 h-5 animate-spin" />
+              <span>Chargement des médicaments...</span>
+            </div>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && !loading && (
+          <div className="absolute z-50 w-full mt-2 bg-white border-2 border-red-200 rounded-lg shadow-xl p-4">
+            <div className="flex items-start gap-2 text-red-600">
+              <AlertCircle className="w-5 h-5 mt-0.5" />
+              <div>
+                <p className="font-semibold">Erreur de chargement</p>
+                <p className="text-sm">{error}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Dropdown Results */}
-        {showDropdown && searchTerm.length >= 2 && (
+        {showDropdown && searchTerm.length >= 2 && !loading && !error && (
           <div 
             ref={dropdownRef}
             className="absolute z-50 w-full mt-2 bg-white border-2 border-gray-200 rounded-lg shadow-xl max-h-96 overflow-y-auto"
           >
             {filteredMeds.length > 0 ? (
               <div>
-                {filteredMeds.map(([medName, variations], index) => {
-                  const firstMed = variations[0]
-                  const isExpanded = expandedMed === medName
+                {filteredMeds.map((medicament) => {
+                  const isExpanded = expandedMed === medicament.id
                   
                   return (
-                    <div key={index} className="border-b border-gray-100 last:border-b-0">
+                    <div key={medicament.id} className="border-b border-gray-100 last:border-b-0">
                       {/* Medication Header */}
                       <button
-                        onClick={() => setExpandedMed(isExpanded ? null : medName)}
+                        onClick={() => setExpandedMed(isExpanded ? null : medicament.id)}
                         className="w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors flex items-center justify-between group"
                       >
                         <div className="flex-1">
                           <div className="font-semibold text-gray-900 group-hover:text-blue-600">
-                            {medName}
+                            {medicament.nom}
                           </div>
                           <div className="text-sm text-gray-600">
-                            {firstMed.moleculeMere} • {firstMed.type}
+                            {medicament.moleculeMereRel.nom} • {medicament.type}
                           </div>
                           <div className="text-xs text-gray-500 mt-1">
-                            {variations.length} dosage{variations.length > 1 ? 's' : ''} disponible{variations.length > 1 ? 's' : ''}
+                            {medicament.dosages.length} dosage{medicament.dosages.length > 1 ? 's' : ''} disponible{medicament.dosages.length > 1 ? 's' : ''}
                           </div>
                         </div>
                         <ChevronRight 
@@ -206,23 +260,23 @@ const MedicationSelector = ({ onSelect, medicamentsDB }) => {
                       {/* Dosage Options - Expanded */}
                       {isExpanded && (
                         <div className="bg-blue-50 border-t border-blue-100">
-                          {variations.map((med, idx) => (
+                          {medicament.dosages.map((dosage) => (
                             <button
-                              key={idx}
-                              onClick={() => handleSelectDosage(med)}
+                              key={dosage.id}
+                              onClick={() => handleSelectDosage(medicament, dosage)}
                               className="w-full text-left px-6 py-3 hover:bg-blue-100 border-b border-blue-100 last:border-b-0 transition-colors"
                             >
                               <div className="flex items-center justify-between">
                                 <div>
                                   <div className="font-semibold text-blue-900">
-                                    {med.dosage}
+                                    {dosage.valeur}
                                   </div>
                                   <div className="text-sm text-blue-700">
-                                    {med.forme}
+                                    {medicament.type}
                                   </div>
                                 </div>
                                 <div className="text-xs text-blue-600 font-medium">
-                                  {med.fabricant}
+                                  {medicament.moleculeMereRel.nom}
                                 </div>
                               </div>
                             </button>
@@ -273,9 +327,12 @@ const MedicationSelector = ({ onSelect, medicamentsDB }) => {
       </div>
 
       {/* Helper Text */}
-      <p className="text-sm text-gray-600">
-        Tapez au moins 2 caractères pour rechercher un médicament dans la base de données
-      </p>
+      {!loading && !error && (
+        <p className="text-sm text-gray-600 flex items-center gap-2">
+          <Search className="w-4 h-4" />
+          Tapez au moins 2 caractères pour rechercher parmi {medicaments.length} médicament{medicaments.length > 1 ? 's' : ''}
+        </p>
+      )}
 
       {/* Request Modal */}
       {showRequestModal && (

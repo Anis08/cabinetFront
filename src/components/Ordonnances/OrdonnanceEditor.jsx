@@ -11,7 +11,6 @@ const OrdonnanceEditor = ({ isOpen, onClose, patient, onSave }) => {
   const [medicaments, setMedicaments] = useState([])
   const [observations, setObservations] = useState('')
   const [showSettings, setShowSettings] = useState(false)
-  const [medicamentsDB, setMedicamentsDB] = useState([])
   const [template, setTemplate] = useState({
     logo: '',
     doctorName: localStorage.getItem('name')?.replace(/"/g, '') || '',
@@ -38,7 +37,7 @@ const OrdonnanceEditor = ({ isOpen, onClose, patient, onSave }) => {
     instructions: ''
   })
 
-  // Load saved template and medications DB on mount
+  // Load saved template on mount
   useEffect(() => {
     const savedTemplate = localStorage.getItem('prescriptionTemplate')
     if (savedTemplate) {
@@ -46,16 +45,6 @@ const OrdonnanceEditor = ({ isOpen, onClose, patient, onSave }) => {
         setTemplate(JSON.parse(savedTemplate))
       } catch (e) {
         console.error('Error loading template:', e)
-      }
-    }
-
-    // Load medications database
-    const savedMeds = localStorage.getItem('medicaments')
-    if (savedMeds) {
-      try {
-        setMedicamentsDB(JSON.parse(savedMeds))
-      } catch (e) {
-        console.error('Error loading medications:', e)
       }
     }
   }, [])
@@ -284,7 +273,6 @@ const OrdonnanceEditor = ({ isOpen, onClose, patient, onSave }) => {
 
                 <MedicationSelector 
                   onSelect={handleMedicationSelect}
-                  medicamentsDB={medicamentsDB}
                 />
               </div>
 
