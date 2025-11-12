@@ -62,14 +62,17 @@ const Ordonnances = () => {
       if (!response.ok) {
         if (response.status === 403 || response.status === 401) {
           // Token expired or unauthorized, try to refresh
+          console.warn('Token expired/unauthorized, attempting refresh...')
           const refreshResponse = await refresh()
           
           if (!refreshResponse) {
+            console.warn('Token refresh failed, logging out')
             logout()
             return
           }
 
           // Retry with new token
+          console.log('Token refreshed, retrying request...')
           response = await fetch(`${baseURL}/medecin/list-patients`, {
             method: 'GET',
             headers: {
@@ -83,17 +86,22 @@ const Ordonnances = () => {
       if (response.ok) {
         const data = await response.json()
         setPatients(data.patients || [])
+        console.log(`Loaded ${data.patients?.length || 0} patients`)
       } else {
         // Silently fail if still unauthorized after refresh attempt
         if (response.status === 401 || response.status === 403) {
-          console.warn('Unable to fetch patients - authentication issue')
+          console.warn('Authentication issue - no patients available')
           setPatients([])
         } else {
-          console.error('Error fetching patients:', response.status, response.statusText)
+          console.warn('Error fetching patients:', response.status, response.statusText)
         }
       }
     } catch (error) {
-      console.error('Error fetching patients:', error)
+      // Only log unexpected errors
+      if (error.name !== 'TypeError' || !error.message.includes('fetch')) {
+        console.warn('Unexpected error fetching patients:', error.message)
+      }
+      setPatients([])
     }
   }
 
