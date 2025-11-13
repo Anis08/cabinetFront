@@ -584,6 +584,7 @@ const PatientProfile: React.FC = () => {
         setPatient(data.patient);
         setNextAppointment(data.nextAppointment);
         setOrdonnances(data.ordonnances || []);
+        setExams(data.exams || []);
 
       }
       catch (error) {
@@ -684,7 +685,7 @@ const PatientProfile: React.FC = () => {
     setShowExamModal(true);
   };
 
-  const handleSaveExam = () => {
+  const handleSaveExam = async () => {
     if (!examForm.type || !examForm.description || !examForm.date) {
       alert('Veuillez remplir tous les champs obligatoires');
       return;
@@ -692,30 +693,97 @@ const PatientProfile: React.FC = () => {
 
     if (currentExam) {
       // Update existing exam
-      setExams(exams.map(exam => 
-        exam.id === currentExam.id 
-          ? { ...exam, ...examForm }
-          : exam
-      ));
+      try {
+        const response = await fetch(`${baseURL}/medecin/complementary-exams/${currentExam.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            type: examForm.type,
+            description: examForm.description,
+            date: examForm.date,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.exam) {
+          setExams(exams.map(exam =>
+            exam.id === currentExam.id
+              ? { ...data.exam }
+              : exam
+          ));
+          alert('Examen complémentaire mis à jour avec succès !');
+        } else {
+          alert(data.message || 'Erreur lors de la mise à jour de l\'examen.');
+        }
+      } catch (error) {
+        console.error('Erreur lors de la mise à jour de l\'examen:', error);
+        alert('Une erreur est survenue lors de la mise à jour de l\'examen.');
+      }
     } else {
-      // Add new exam
-      const newExam: ComplementaryExam = {
-        id: Date.now().toString(),
-        type: examForm.type,
-        description: examForm.description,
-        date: examForm.date,
-        files: []
-      };
-      setExams([...exams, newExam]);
+      // Add new exam via backend
+      try {
+        const response = await fetch(`${baseURL}/medecin/complementary-exams/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            patientId: patient.id,
+            type: examForm.type,
+            description: examForm.description,
+            date: examForm.date,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.exam) {
+          setExams([...exams, { ...data.exam, files: data.exam.files || [] }]);
+          alert('Examen complémentaire ajouté avec succès !');
+        } else {
+          alert(data.message || 'Erreur lors de l\'ajout de l\'examen.');
+        }
+      } catch (error) {
+        console.error('Erreur lors de l\'ajout de l\'examen:', error);
+        alert('Une erreur est survenue lors de l\'ajout de l\'examen.');
+      }
     }
 
     setShowExamModal(false);
     setCurrentExam(null);
   };
 
-  const handleDeleteExam = (examId: string) => {
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer cet examen ?')) {
-      setExams(exams.filter(exam => exam.id !== examId));
+  const handleDeleteExam = async (examId: string) => {
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer cet examen ?')) return;
+
+    try {
+      const response = await fetch(`${baseURL}/medecin/complementary-exams/${examId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setExams(exams.filter(exam => exam.id !== examId));
+        alert('Examen complémentaire supprimé avec succès !');
+      } else {
+        alert(data.message || 'Erreur lors de la suppression de l\'examen.');
+      }
+    } catch (error) {
+      console.error('Erreur lors de la suppression de l\'examen:', error);
+      alert('Une erreur est survenue lors de la suppression de l\'examen.');
     }
   };
 
@@ -732,47 +800,87 @@ const PatientProfile: React.FC = () => {
 
     setUploadingFile(true);
 
-    // Simulate file upload (replace with actual API call)
-    setTimeout(() => {
-      const newFile: ExamFile = {
-        id: Date.now().toString(),
-        name: file.name,
-        url: URL.createObjectURL(file), // In production, use actual uploaded URL
-        type: file.type,
-        size: file.size,
-        uploadDate: new Date().toISOString()
-      };
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
 
-      setExams(exams.map(exam => 
-        exam.id === examId 
-          ? { ...exam, files: [...exam.files, newFile] }
-          : exam
-      ));
+      const response = await fetch(`${baseURL}/medecin/complementary-exams/${examId}/files`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+        credentials: 'include',
+        body: formData,
+      });
 
+      const data = await response.json();
+
+      if (response.ok && data.file) {
+        
+
+        setExams(exams.map(exam =>
+          exam.id === examId
+            ? { ...exam, files: [...exam.files, data.file] }
+            : exam
+        ));
+
+        alert('Fichier uploadé avec succès !');
+      } else {
+        alert(data.message || 'Erreur lors de l\'upload du fichier.');
+      }
+    } catch (error) {
+      console.error('Erreur lors de l\'upload du fichier:', error);
+      alert('Une erreur est survenue lors de l\'upload du fichier.');
+    } finally {
       setUploadingFile(false);
-      alert('Fichier uploadé avec succès !');
-    }, 1000);
+    }
   };
 
-  const handleDeleteFile = (examId: string, fileId: string) => {
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce fichier ?')) {
-      setExams(exams.map(exam => 
-        exam.id === examId 
-          ? { ...exam, files: exam.files.filter(f => f.id !== fileId) }
-          : exam
-      ));
+  const handleDeleteFile = async (examId: string, fileId: string) => {
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce fichier ?')) return;
+
+    try {
+      const response = await fetch(`${baseURL}/medecin/complementary-exams/files/${fileId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setExams(exams.map(exam =>
+          exam.id === examId
+            ? { ...exam, files: exam.files.filter(f => f.id !== fileId) }
+            : exam
+        ));
+        alert('Fichier supprimé avec succès !');
+      } else {
+        alert(data.message || 'Erreur lors de la suppression du fichier.');
+      }
+    } catch (error) {
+      console.error('Erreur lors de la suppression du fichier:', error);
+      alert('Une erreur est survenue lors de la suppression du fichier.');
     }
   };
 
   const handlePreviewFile = (file: ExamFile) => {
-    setSelectedPreviewFile(file);
-    setShowFilePreview(true);
+    const link = document.createElement('a');
+    link.href = `https://drive.google.com/file/d/${file.fileUrl}/view`;
+    link.download =  file.fileName;
+    link.target = '_blank';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handleDownloadFile = (file: ExamFile) => {
     const link = document.createElement('a');
-    link.href = file.url;
-    link.download = file.name;
+    link.href = `https://drive.google.com/file/d/${file.fileUrl}/view`;
+    link.download =  file.fileName;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -799,7 +907,7 @@ const PatientProfile: React.FC = () => {
   const handleDownloadOrdonnancePDF = async (ordonnance: any) => {
     try {
       // Utiliser l'utilitaire d'export PDF existant
-      const { exportPrescriptionToPDF } = await import('../utils/pdfExport');
+      const { exportPrescriptionToPDF, generatePrescriptionPDF } = await import('../utils/pdfExport');
       
       const prescriptionData = {
         patientId: patient._id || patient.id,
@@ -810,7 +918,7 @@ const PatientProfile: React.FC = () => {
         template: ordonnance.template || {}
       };
 
-      const result = await exportPrescriptionToPDF(prescriptionData);
+      const result = await generatePrescriptionPDF(prescriptionData);
       
       if (result.success) {
         alert(`PDF téléchargé avec succès: ${result.filename}`);
@@ -1426,14 +1534,14 @@ const PatientProfile: React.FC = () => {
                                     <tr key={file.id} className="border-b border-gray-100 hover:bg-white transition-colors">
                                       <td className="py-3 px-4 text-sm">
                                         <div className="flex items-center gap-2">
-                                          {getFileIcon(file.type)}
-                                          <span className="font-medium text-gray-800 truncate" title={file.name}>
-                                            {file.name}
+                                          {getFileIcon(file?.fileType)}
+                                          <span className="font-medium text-gray-800 truncate" title={file.fileName}>
+                                            {file?.fileName}
                                           </span>
                                         </div>
                                       </td>
                                       <td className="py-3 px-4 text-sm text-gray-600">
-                                        {formatFileSize(file.size)}
+                                        {formatFileSize(file?.fileSize)}
                                       </td>
                                       <td className="py-3 px-4 text-sm text-gray-600">
                                         {new Date(file.uploadDate).toLocaleDateString('fr-FR')}
@@ -1587,7 +1695,7 @@ const PatientProfile: React.FC = () => {
             <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
               <h2 className="text-xl font-semibold text-gray-800 flex items-center truncate">
                 <Eye className="w-5 h-5 mr-3 text-orange-500" />
-                <span className="truncate">{selectedPreviewFile.name}</span>
+                <span className="truncate">{selectedPreviewFile.fileName}</span>
               </h2>
               <button
                 onClick={() => setShowFilePreview(false)}
@@ -1599,17 +1707,17 @@ const PatientProfile: React.FC = () => {
 
             {/* Modal Content */}
             <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
-              {selectedPreviewFile.type.includes('image') ? (
+              {selectedPreviewFile.fileType.includes('image') ? (
                 <img
-                  src={selectedPreviewFile.url}
-                  alt={selectedPreviewFile.name}
+                  src={`https://drive.google.com/uc?id=${selectedPreviewFile.fileUrl}`}
+                  alt={selectedPreviewFile.fileName}
                   className="w-full h-auto rounded-lg"
                 />
-              ) : selectedPreviewFile.type.includes('pdf') ? (
+              ) : selectedPreviewFile.fileType.includes('pdf') ? (
                 <iframe
-                  src={selectedPreviewFile.url}
+                  src={selectedPreviewFile.fileUrl}
                   className="w-full h-[600px] rounded-lg border"
-                  title={selectedPreviewFile.name}
+                  title={selectedPreviewFile.fileName}
                 />
               ) : (
                 <div className="text-center py-12">
@@ -1703,7 +1811,7 @@ const PatientProfile: React.FC = () => {
                               </p>
                             </div>
                           </div>
-                          {index === 0 && (
+                                                   {index === 0 && (
                             <span className="px-3 py-1 bg-green-100 text-green-700 text-sm font-medium rounded-full">
                               Dernière consultation
                             </span>
@@ -1749,7 +1857,7 @@ const PatientProfile: React.FC = () => {
                             <div className="bg-white rounded-lg p-4 border border-blue-100">
                               <div className="flex items-center space-x-3 mb-2">
                                 <div className="p-2 bg-blue-50 rounded-lg">
-                                  <Scale className="w-5 h-5 text-blue-500" />
+                                                                   <Scale className="w-5 h-5 text-blue-500" />
                                 </div>
                                 <span className="text-sm font-medium text-gray-600">Poids</span>
                               </div>
