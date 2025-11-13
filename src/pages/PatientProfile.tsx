@@ -363,6 +363,11 @@ const PatientProfile: React.FC = () => {
   const [showOrdonnanceModal, setShowOrdonnanceModal] = useState(false);
   const [selectedOrdonnance, setSelectedOrdonnance] = useState<any>(null);
 
+  // Edit Note States
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editNoteText, setEditNoteText] = useState('');
+  const [savingNote, setSavingNote] = useState(false);
+
   const examTypes = [
     'Échographie rénale',
     'Scanner/IRM',
@@ -785,6 +790,87 @@ const PatientProfile: React.FC = () => {
     return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
   };
 
+  // Edit Note Functions
+  const handleStartEditNote = (rdv: any) => {
+    setEditingNoteId(rdv._id || rdv.id);
+    setEditNoteText(rdv.note || '');
+  };
+
+  const handleCancelEditNote = () => {
+    setEditingNoteId(null);
+    setEditNoteText('');
+  };
+
+  const handleSaveNote = async (rendezVousId: string) => {
+    if (!editNoteText.trim()) {
+      alert('La note ne peut pas être vide');
+      return;
+    }
+
+    setSavingNote(true);
+    try {
+      let response = await fetch(`${baseURL}/medecin/rendez-vous/${rendezVousId}/note`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ note: editNoteText }),
+      });
+
+      if (!response.ok) {
+        if (response.status === 403) {
+          logout();
+          return;
+        }
+        if (response.status === 401) {
+          const refreshResponse = await refresh();
+          if (!refreshResponse) {
+            logout();
+            return;
+          }
+          response = await fetch(`${baseURL}/medecin/rendez-vous/${rendezVousId}/note`, {
+            method: 'PUT',
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`,
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify({ note: editNoteText }),
+          });
+        }
+      }
+
+      if (response.ok) {
+        const data = await response.json();
+        // Update the patient state with the new note
+        setPatient(prevPatient => {
+          if (!prevPatient) return prevPatient;
+          return {
+            ...prevPatient,
+            rendezVous: prevPatient.rendezVous.map(rdv => 
+              (rdv._id || rdv.id) === rendezVousId 
+                ? { ...rdv, note: editNoteText }
+                : rdv
+            )
+          };
+        });
+        setEditingNoteId(null);
+        setEditNoteText('');
+        alert('Note modifiée avec succès !');
+      } else {
+        const errorData = await response.json();
+        alert(errorData.message || 'Erreur lors de la modification de la note.');
+      }
+    } catch (error) {
+      console.error('Erreur:', error);
+      alert('Une erreur est survenue lors de la modification de la note.');
+    } finally {
+      setSavingNote(false);
+    }
+  };
+
   const getFileIcon = (type: string) => {
     if (type.includes('pdf')) return <FileText className="w-5 h-5 text-red-500" />;
     if (type.includes('image')) return <FileImage className="w-5 h-5 text-blue-500" />;
@@ -1166,11 +1252,41 @@ const PatientProfile: React.FC = () => {
                           </div>
 
                           {/* Note Content */}
-                          <div className="bg-green-50 border border-green-100 rounded-lg p-4">
-                            <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">
-                              {rdv.note}
-                            </p>
-                          </div>
+                          {editingNoteId === (rdv._id || rdv.id) ? (
+                            <div className="space-y-3">
+                              <textarea
+                                value={editNoteText}
+                                onChange={(e) => setEditNoteText(e.target.value)}
+                                rows={4}
+                                className="w-full px-4 py-3 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+                                placeholder="Modifier la note..."
+                                disabled={savingNote}
+                              />
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => handleSaveNote(rdv._id || rdv.id)}
+                                  disabled={savingNote}
+                                  className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                >
+                                  <Save className="w-4 h-4" />
+                                  {savingNote ? 'Enregistrement...' : 'Enregistrer'}
+                                </button>
+                                <button
+                                  onClick={handleCancelEditNote}
+                                  disabled={savingNote}
+                                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  Annuler
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="bg-green-50 border border-green-100 rounded-lg p-4">
+                              <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">
+                                {rdv.note}
+                              </p>
+                            </div>
+                          )}
 
                           {/* Vital Signs if available */}
                           {(rdv.poids || rdv.paSystolique || rdv.pulse) && (
@@ -1196,6 +1312,17 @@ const PatientProfile: React.FC = () => {
                             </div>
                           )}
                         </div>
+
+                        {/* Edit Button */}
+                        {!editingNoteId && (
+                          <button
+                            onClick={() => handleStartEditNote(rdv)}
+                            className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors flex-shrink-0"
+                            title="Modifier la note"
+                          >
+                            <Edit className="w-5 h-5" />
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}
