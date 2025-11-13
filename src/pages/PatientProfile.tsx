@@ -43,6 +43,7 @@ import {
 } from 'lucide-react';
 import BiologicalDataSection from '../components/Patients/BiologicalDataSection';
 import OrdonnanceEditor from '../components/Ordonnances/OrdonnanceEditor';
+import ComplementaryExamsSection from '../components/ComplementaryExams/ComplementaryExamsSection';
 import {
   LineChart,
   Line,
@@ -1312,7 +1313,12 @@ const PatientProfile: React.FC = () => {
         {/* Spacing between sections */}
         <div className="mb-12"></div>
 
-        {/* Examens Complémentaires Section - Simple Design like Biological Data */}
+        {/* NEW: Examens Complémentaires Section - Modern Component-based Design with API Integration */}
+        <ComplementaryExamsSection patientId={patientId} />
+
+        {/* OLD: Examens Complémentaires Section - Simple Design (TO BE REMOVED) */}
+        {/* Kept temporarily for reference - can be safely deleted after testing new component */}
+        {false && (<div>
         <div className="mb-8">
           <div className="bg-white rounded-xl shadow-sm border border-gray-100">
             {/* Simple Header with Orange gradient */}
@@ -1645,6 +1651,8 @@ const PatientProfile: React.FC = () => {
           </div>
         </div>
       )}
+        </div>)}
+        {/* END OLD CODE - Can be deleted after testing */}
 
       {/* History Modal */}
       {showHistoryModal && (
