@@ -160,7 +160,8 @@ const QueueList = ({
     queue, 
     callPatient, 
     startConsultation,
-    buildQueue 
+    buildQueue,
+    removeFromWaitingQueue 
   } = useApp()
 
   const handleCall = async (visitId) => {
@@ -204,14 +205,14 @@ const QueueList = ({
   }
 
   const handleRemove = async (visitId) => {
-    if (!confirm('Êtes-vous sûr de vouloir retirer ce patient de la file ?')) return
+    if (!confirm('Êtes-vous sûr de vouloir retirer ce patient de la file d\'attente ?')) return
     
     const visit = queue.find(item => item.id === visitId)
     if (workflowActions) {
       workflowActions.removeFromQueue(visit)
     } else {
-      // Logique par défaut
-      console.log('Remove patient:', visitId)
+      // Call API to remove from waiting queue
+      await removeFromWaitingQueue(visitId)
     }
   }
 

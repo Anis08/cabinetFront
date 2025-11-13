@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react'
 import { toast } from 'sonner'
+import { baseURL } from '../config'
 
 // Types d'actions
 const ActionTypes = {
@@ -273,6 +274,56 @@ export const AppProvider = ({ children }) => {
       const patient = state.patients.find(p => p.id === visit.patient_id)
       const patientName = patient ? `${patient.prenom} ${patient.nom}` : 'Patient'
       toast.success(`Consultation terminée pour ${patientName}`)
+    },
+
+    removeFromWaitingQueue: async (visitId) => {
+      try {
+        // Get the visit and patient info before making the API call
+        const visit = state.visits.find(v => v.id === visitId)
+        if (!visit) {
+          toast.error('Patient non trouvé')
+          return
+        }
+
+        const patient = state.patients.find(p => p.id === visit.patient_id)
+        const patientName = patient ? `${patient.prenom} ${patient.nom}` : 'Patient'
+
+        // Make API call to backend
+        const response = await fetch(`${baseURL}/medecin/remove-from-waiting`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ rendezVousId: visitId })
+        })
+
+        const data = await response.json()
+
+        if (response.ok) {
+          // Update local state - mark as removed/cancelled
+          const updatedVisit = {
+            ...visit,
+            statut: 'annule',
+            updated_at: new Date().toISOString()
+          }
+
+          dispatch({ type: ActionTypes.UPDATE_VISIT, payload: updatedVisit })
+          
+          // Show success notification
+          toast.success(`${patientName} retiré de la file d'attente`)
+          
+          // Rebuild queue to update UI
+          actions.buildQueue()
+          actions.calculateKPIs()
+        } else {
+          console.error('❌ Erreur:', data.message)
+          toast.error(data.message || 'Erreur lors du retrait du patient')
+        }
+      } catch (error) {
+        console.error('❌ Erreur réseau:', error)
+        toast.error('Erreur de connexion au serveur')
+      }
     }
   }
 

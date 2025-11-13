@@ -43,7 +43,7 @@ import {
 } from 'lucide-react';
 import BiologicalDataSection from '../components/Patients/BiologicalDataSection';
 import OrdonnanceEditor from '../components/Ordonnances/OrdonnanceEditor';
-import ExamsList from '../components/Exams/ExamsList';
+import ComplementaryExamsSection from '../components/ComplementaryExams/ComplementaryExamsSection';
 import {
   LineChart,
   Line,
@@ -363,6 +363,11 @@ const PatientProfile: React.FC = () => {
   const [showOrdonnanceModal, setShowOrdonnanceModal] = useState(false);
   const [selectedOrdonnance, setSelectedOrdonnance] = useState<any>(null);
 
+  // Edit Note States
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editNoteText, setEditNoteText] = useState('');
+  const [savingNote, setSavingNote] = useState(false);
+
   const examTypes = [
     'Échographie rénale',
     'Scanner/IRM',
@@ -585,6 +590,7 @@ const PatientProfile: React.FC = () => {
         setPatient(data.patient);
         setNextAppointment(data.nextAppointment);
         setOrdonnances(data.ordonnances || []);
+        setExams(data.exams || []);
 
       }
       catch (error) {
@@ -685,7 +691,7 @@ const PatientProfile: React.FC = () => {
     setShowExamModal(true);
   };
 
-  const handleSaveExam = () => {
+  const handleSaveExam = async () => {
     if (!examForm.type || !examForm.description || !examForm.date) {
       alert('Veuillez remplir tous les champs obligatoires');
       return;
@@ -693,30 +699,97 @@ const PatientProfile: React.FC = () => {
 
     if (currentExam) {
       // Update existing exam
-      setExams(exams.map(exam => 
-        exam.id === currentExam.id 
-          ? { ...exam, ...examForm }
-          : exam
-      ));
+      try {
+        const response = await fetch(`${baseURL}/medecin/complementary-exams/${currentExam.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            type: examForm.type,
+            description: examForm.description,
+            date: examForm.date,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.exam) {
+          setExams(exams.map(exam =>
+            exam.id === currentExam.id
+              ? { ...data.exam }
+              : exam
+          ));
+          alert('Examen complémentaire mis à jour avec succès !');
+        } else {
+          alert(data.message || 'Erreur lors de la mise à jour de l\'examen.');
+        }
+      } catch (error) {
+        console.error('Erreur lors de la mise à jour de l\'examen:', error);
+        alert('Une erreur est survenue lors de la mise à jour de l\'examen.');
+      }
     } else {
-      // Add new exam
-      const newExam: ComplementaryExam = {
-        id: Date.now().toString(),
-        type: examForm.type,
-        description: examForm.description,
-        date: examForm.date,
-        files: []
-      };
-      setExams([...exams, newExam]);
+      // Add new exam via backend
+      try {
+        const response = await fetch(`${baseURL}/medecin/complementary-exams/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            patientId: patient.id,
+            type: examForm.type,
+            description: examForm.description,
+            date: examForm.date,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.exam) {
+          setExams([...exams, { ...data.exam, files: data.exam.files || [] }]);
+          alert('Examen complémentaire ajouté avec succès !');
+        } else {
+          alert(data.message || 'Erreur lors de l\'ajout de l\'examen.');
+        }
+      } catch (error) {
+        console.error('Erreur lors de l\'ajout de l\'examen:', error);
+        alert('Une erreur est survenue lors de l\'ajout de l\'examen.');
+      }
     }
 
     setShowExamModal(false);
     setCurrentExam(null);
   };
 
-  const handleDeleteExam = (examId: string) => {
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer cet examen ?')) {
-      setExams(exams.filter(exam => exam.id !== examId));
+  const handleDeleteExam = async (examId: string) => {
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer cet examen ?')) return;
+
+    try {
+      const response = await fetch(`${baseURL}/medecin/complementary-exams/${examId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setExams(exams.filter(exam => exam.id !== examId));
+        alert('Examen complémentaire supprimé avec succès !');
+      } else {
+        alert(data.message || 'Erreur lors de la suppression de l\'examen.');
+      }
+    } catch (error) {
+      console.error('Erreur lors de la suppression de l\'examen:', error);
+      alert('Une erreur est survenue lors de la suppression de l\'examen.');
     }
   };
 
@@ -733,47 +806,87 @@ const PatientProfile: React.FC = () => {
 
     setUploadingFile(true);
 
-    // Simulate file upload (replace with actual API call)
-    setTimeout(() => {
-      const newFile: ExamFile = {
-        id: Date.now().toString(),
-        name: file.name,
-        url: URL.createObjectURL(file), // In production, use actual uploaded URL
-        type: file.type,
-        size: file.size,
-        uploadDate: new Date().toISOString()
-      };
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
 
-      setExams(exams.map(exam => 
-        exam.id === examId 
-          ? { ...exam, files: [...exam.files, newFile] }
-          : exam
-      ));
+      const response = await fetch(`${baseURL}/medecin/complementary-exams/${examId}/files`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+        credentials: 'include',
+        body: formData,
+      });
 
+      const data = await response.json();
+
+      if (response.ok && data.file) {
+        
+
+        setExams(exams.map(exam =>
+          exam.id === examId
+            ? { ...exam, files: [...exam.files, data.file] }
+            : exam
+        ));
+
+        alert('Fichier uploadé avec succès !');
+      } else {
+        alert(data.message || 'Erreur lors de l\'upload du fichier.');
+      }
+    } catch (error) {
+      console.error('Erreur lors de l\'upload du fichier:', error);
+      alert('Une erreur est survenue lors de l\'upload du fichier.');
+    } finally {
       setUploadingFile(false);
-      alert('Fichier uploadé avec succès !');
-    }, 1000);
+    }
   };
 
-  const handleDeleteFile = (examId: string, fileId: string) => {
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce fichier ?')) {
-      setExams(exams.map(exam => 
-        exam.id === examId 
-          ? { ...exam, files: exam.files.filter(f => f.id !== fileId) }
-          : exam
-      ));
+  const handleDeleteFile = async (examId: string, fileId: string) => {
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce fichier ?')) return;
+
+    try {
+      const response = await fetch(`${baseURL}/medecin/complementary-exams/files/${fileId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setExams(exams.map(exam =>
+          exam.id === examId
+            ? { ...exam, files: exam.files.filter(f => f.id !== fileId) }
+            : exam
+        ));
+        alert('Fichier supprimé avec succès !');
+      } else {
+        alert(data.message || 'Erreur lors de la suppression du fichier.');
+      }
+    } catch (error) {
+      console.error('Erreur lors de la suppression du fichier:', error);
+      alert('Une erreur est survenue lors de la suppression du fichier.');
     }
   };
 
   const handlePreviewFile = (file: ExamFile) => {
-    setSelectedPreviewFile(file);
-    setShowFilePreview(true);
+    const link = document.createElement('a');
+    link.href = `https://drive.google.com/file/d/${file.fileUrl}/view`;
+    link.download =  file.fileName;
+    link.target = '_blank';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handleDownloadFile = (file: ExamFile) => {
     const link = document.createElement('a');
-    link.href = file.url;
-    link.download = file.name;
+    link.href = `https://drive.google.com/file/d/${file.fileUrl}/view`;
+    link.download =  file.fileName;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -783,6 +896,87 @@ const PatientProfile: React.FC = () => {
     if (bytes < 1024) return bytes + ' B';
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
     return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+  };
+
+  // Edit Note Functions
+  const handleStartEditNote = (rdv: any) => {
+    setEditingNoteId(rdv._id || rdv.id);
+    setEditNoteText(rdv.note || '');
+  };
+
+  const handleCancelEditNote = () => {
+    setEditingNoteId(null);
+    setEditNoteText('');
+  };
+
+  const handleSaveNote = async (rendezVousId: string) => {
+    if (!editNoteText.trim()) {
+      alert('La note ne peut pas être vide');
+      return;
+    }
+
+    setSavingNote(true);
+    try {
+      let response = await fetch(`${baseURL}/medecin/rendez-vous/${rendezVousId}/note`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ note: editNoteText }),
+      });
+
+      if (!response.ok) {
+        if (response.status === 403) {
+          logout();
+          return;
+        }
+        if (response.status === 401) {
+          const refreshResponse = await refresh();
+          if (!refreshResponse) {
+            logout();
+            return;
+          }
+          response = await fetch(`${baseURL}/medecin/rendez-vous/${rendezVousId}/note`, {
+            method: 'PUT',
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`,
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify({ note: editNoteText }),
+          });
+        }
+      }
+
+      if (response.ok) {
+        const data = await response.json();
+        // Update the patient state with the new note
+        setPatient(prevPatient => {
+          if (!prevPatient) return prevPatient;
+          return {
+            ...prevPatient,
+            rendezVous: prevPatient.rendezVous.map(rdv => 
+              (rdv._id || rdv.id) === rendezVousId 
+                ? { ...rdv, note: editNoteText }
+                : rdv
+            )
+          };
+        });
+        setEditingNoteId(null);
+        setEditNoteText('');
+        alert('Note modifiée avec succès !');
+      } else {
+        const errorData = await response.json();
+        alert(errorData.message || 'Erreur lors de la modification de la note.');
+      }
+    } catch (error) {
+      console.error('Erreur:', error);
+      alert('Une erreur est survenue lors de la modification de la note.');
+    } finally {
+      setSavingNote(false);
+    }
   };
 
   const getFileIcon = (type: string) => {
@@ -800,7 +994,7 @@ const PatientProfile: React.FC = () => {
   const handleDownloadOrdonnancePDF = async (ordonnance: any) => {
     try {
       // Utiliser l'utilitaire d'export PDF existant
-      const { exportPrescriptionToPDF } = await import('../utils/pdfExport');
+      const { exportPrescriptionToPDF, generatePrescriptionPDF } = await import('../utils/pdfExport');
       
       const prescriptionData = {
         patientId: patient._id || patient.id,
@@ -811,7 +1005,7 @@ const PatientProfile: React.FC = () => {
         template: ordonnance.template || {}
       };
 
-      const result = await exportPrescriptionToPDF(prescriptionData);
+      const result = await generatePrescriptionPDF(prescriptionData);
       
       if (result.success) {
         alert(`PDF téléchargé avec succès: ${result.filename}`);
@@ -1166,11 +1360,41 @@ const PatientProfile: React.FC = () => {
                           </div>
 
                           {/* Note Content */}
-                          <div className="bg-green-50 border border-green-100 rounded-lg p-4">
-                            <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">
-                              {rdv.note}
-                            </p>
-                          </div>
+                          {editingNoteId === (rdv._id || rdv.id) ? (
+                            <div className="space-y-3">
+                              <textarea
+                                value={editNoteText}
+                                onChange={(e) => setEditNoteText(e.target.value)}
+                                rows={4}
+                                className="w-full px-4 py-3 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+                                placeholder="Modifier la note..."
+                                disabled={savingNote}
+                              />
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => handleSaveNote(rdv._id || rdv.id)}
+                                  disabled={savingNote}
+                                  className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                >
+                                  <Save className="w-4 h-4" />
+                                  {savingNote ? 'Enregistrement...' : 'Enregistrer'}
+                                </button>
+                                <button
+                                  onClick={handleCancelEditNote}
+                                  disabled={savingNote}
+                                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  Annuler
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="bg-green-50 border border-green-100 rounded-lg p-4">
+                              <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">
+                                {rdv.note}
+                              </p>
+                            </div>
+                          )}
 
                           {/* Vital Signs if available */}
                           {(rdv.poids || rdv.paSystolique || rdv.pulse) && (
@@ -1196,6 +1420,17 @@ const PatientProfile: React.FC = () => {
                             </div>
                           )}
                         </div>
+
+                        {/* Edit Button */}
+                        {!editingNoteId && (
+                          <button
+                            onClick={() => handleStartEditNote(rdv)}
+                            className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors flex-shrink-0"
+                            title="Modifier la note"
+                          >
+                            <Edit className="w-5 h-5" />
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -1313,9 +1548,187 @@ const PatientProfile: React.FC = () => {
         {/* Spacing between sections */}
         <div className="mb-12"></div>
 
-        {/* Examens Complémentaires Section - Using Real API Integration */}
+        {/* NEW: Examens Complémentaires Section - Modern Component-based Design with API Integration */}
+        <ComplementaryExamsSection patientId={patientId} />
+
+        {/* OLD: Examens Complémentaires Section - Simple Design (TO BE REMOVED) */}
+        {/* Kept temporarily for reference - can be safely deleted after testing new component */}
+        {false && (<div>
         <div className="mb-8">
-          <ExamsList patientId={patientId} />
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+            {/* Simple Header with Orange gradient */}
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FileImage className="w-5 h-5 text-orange-500" />
+                <h3 className="text-lg font-semibold text-gray-800">Examens Complémentaires</h3>
+              </div>
+              <button
+                onClick={handleAddExam}
+                className="bg-gradient-to-r from-orange-500 to-amber-500 text-white px-4 py-2 rounded-lg font-medium hover:shadow-lg transition-all duration-200 flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                Nouvel examen
+              </button>
+            </div>
+
+            {/* Content Area with Accordion */}
+            {exams.length > 0 ? (
+              <div className="divide-y divide-gray-200">
+                {exams.map((exam) => (
+                  <div key={exam.id} className="bg-white">
+                    {/* Exam Header (always visible) */}
+                    <div className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                      <div className="flex items-center gap-4 flex-1">
+                        {/* Toggle button */}
+                        <button
+                          onClick={() => toggleExamExpansion(exam.id)}
+                          className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
+                          title={expandedExams[exam.id] ? "Masquer les détails" : "Afficher les détails"}
+                        >
+                          {expandedExams[exam.id] ? (
+                            <ChevronUp className="w-5 h-5 text-gray-600" />
+                          ) : (
+                            <ChevronDown className="w-5 h-5 text-gray-600" />
+                          )}
+                        </button>
+
+                        {/* Exam info */}
+                        <div className="flex items-center gap-3 flex-1">
+                          <h4 className="font-semibold text-gray-800">{exam.type}</h4>
+                          <span className="text-sm text-gray-500">
+                            {new Date(exam.date).toLocaleDateString('fr-FR')}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Action buttons */}
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleEditExam(exam)}
+                          className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
+                          title="Modifier"
+                        >
+                          <Edit className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteExam(exam.id)}
+                          className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                          title="Supprimer"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Expanded Content (conditional) */}
+                    {expandedExams[exam.id] && (
+                      <div className="px-6 pb-6">
+                        {/* Description */}
+                        <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                          <p className="text-sm font-semibold text-gray-700 mb-2">Description:</p>
+                          <p className="text-sm text-gray-600">{exam.description}</p>
+                        </div>
+
+                        {/* Files Section */}
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <h4 className="text-sm font-medium text-gray-700 flex items-center">
+                              <FileImage className="w-4 h-4 mr-2 text-orange-500" />
+                              Fichiers associés ({exam.files.length})
+                            </h4>
+                            <label className="cursor-pointer">
+                              <input
+                                type="file"
+                                className="hidden"
+                                accept=".pdf,.jpg,.jpeg,.png,.dcm"
+                                onChange={(e) => handleFileUploadForExam(exam.id, e)}
+                                disabled={uploadingFile}
+                              />
+                              <span className="flex items-center space-x-2 px-3 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-sm">
+                                <Upload className="w-4 h-4" />
+                                <span>{uploadingFile ? 'Upload...' : 'Ajouter'}</span>
+                              </span>
+                            </label>
+                          </div>
+
+                          {exam.files.length > 0 ? (
+                            <div className="overflow-x-auto bg-gray-50 rounded-lg">
+                              <table className="w-full">
+                                <thead>
+                                  <tr className="border-b border-gray-200">
+                                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Fichier</th>
+                                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Taille</th>
+                                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Date</th>
+                                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Actions</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {exam.files.map((file) => (
+                                    <tr key={file.id} className="border-b border-gray-100 hover:bg-white transition-colors">
+                                      <td className="py-3 px-4 text-sm">
+                                        <div className="flex items-center gap-2">
+                                          {getFileIcon(file?.fileType)}
+                                          <span className="font-medium text-gray-800 truncate" title={file.fileName}>
+                                            {file?.fileName}
+                                          </span>
+                                        </div>
+                                      </td>
+                                      <td className="py-3 px-4 text-sm text-gray-600">
+                                        {formatFileSize(file?.fileSize)}
+                                      </td>
+                                      <td className="py-3 px-4 text-sm text-gray-600">
+                                        {new Date(file.uploadDate).toLocaleDateString('fr-FR')}
+                                      </td>
+                                      <td className="py-3 px-4">
+                                        <div className="flex items-center gap-2">
+                                          <button
+                                            onClick={() => handlePreviewFile(file)}
+                                            className="p-2 text-orange-600 hover:bg-orange-100 rounded-lg transition-colors"
+                                            title="Voir"
+                                          >
+                                            <Eye className="w-4 h-4" />
+                                          </button>
+                                          <button
+                                            onClick={() => handleDownloadFile(file)}
+                                            className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors"
+                                            title="Télécharger"
+                                          >
+                                            <Download className="w-4 h-4" />
+                                          </button>
+                                          <button
+                                            onClick={() => handleDeleteFile(exam.id, file.id)}
+                                            className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                                            title="Supprimer"
+                                          >
+                                            <Trash2 className="w-4 h-4" />
+                                          </button>
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          ) : (
+                            <div className="text-center py-6 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                              <FileText className="w-10 h-10 text-gray-400 mx-auto mb-2" />
+                              <p className="text-sm text-gray-500">Aucun fichier associé</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-12 text-center text-gray-500">
+                <FileImage className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                <p className="text-lg font-medium mb-2">Aucun examen complémentaire</p>
+                <p className="text-sm">Cliquez sur "Nouvel examen" pour commencer</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -1415,7 +1828,7 @@ const PatientProfile: React.FC = () => {
             <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
               <h2 className="text-xl font-semibold text-gray-800 flex items-center truncate">
                 <Eye className="w-5 h-5 mr-3 text-orange-500" />
-                <span className="truncate">{selectedPreviewFile.name}</span>
+                <span className="truncate">{selectedPreviewFile.fileName}</span>
               </h2>
               <button
                 onClick={() => setShowFilePreview(false)}
@@ -1427,17 +1840,17 @@ const PatientProfile: React.FC = () => {
 
             {/* Modal Content */}
             <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
-              {selectedPreviewFile.type.includes('image') ? (
+              {selectedPreviewFile.fileType.includes('image') ? (
                 <img
-                  src={selectedPreviewFile.url}
-                  alt={selectedPreviewFile.name}
+                  src={`https://drive.google.com/uc?id=${selectedPreviewFile.fileUrl}`}
+                  alt={selectedPreviewFile.fileName}
                   className="w-full h-auto rounded-lg"
                 />
-              ) : selectedPreviewFile.type.includes('pdf') ? (
+              ) : selectedPreviewFile.fileType.includes('pdf') ? (
                 <iframe
-                  src={selectedPreviewFile.url}
+                  src={selectedPreviewFile.fileUrl}
                   className="w-full h-[600px] rounded-lg border"
-                  title={selectedPreviewFile.name}
+                  title={selectedPreviewFile.fileName}
                 />
               ) : (
                 <div className="text-center py-12">
@@ -1473,6 +1886,8 @@ const PatientProfile: React.FC = () => {
           </div>
         </div>
       )}
+        </div>)}
+        {/* END OLD CODE - Can be deleted after testing */}
 
       {/* History Modal */}
       {showHistoryModal && (
@@ -1531,7 +1946,7 @@ const PatientProfile: React.FC = () => {
                               </p>
                             </div>
                           </div>
-                          {index === 0 && (
+                                                   {index === 0 && (
                             <span className="px-3 py-1 bg-green-100 text-green-700 text-sm font-medium rounded-full">
                               Dernière consultation
                             </span>
@@ -1577,7 +1992,7 @@ const PatientProfile: React.FC = () => {
                             <div className="bg-white rounded-lg p-4 border border-blue-100">
                               <div className="flex items-center space-x-3 mb-2">
                                 <div className="p-2 bg-blue-50 rounded-lg">
-                                  <Scale className="w-5 h-5 text-blue-500" />
+                                                                   <Scale className="w-5 h-5 text-blue-500" />
                                 </div>
                                 <span className="text-sm font-medium text-gray-600">Poids</span>
                               </div>
