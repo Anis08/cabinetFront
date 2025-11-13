@@ -83,7 +83,7 @@ const FileUploadModal = ({ isOpen, onClose, patientId, exam, onSuccess }) => {
     setError('');
 
     try {
-      await uploadExamFile(patientId, exam.id, selectedFile, description);
+      await uploadExamFile(exam.id, selectedFile, description);
       onSuccess();
       handleClose();
     } catch (error) {

@@ -5,6 +5,7 @@ import {
   createComplementaryExam, 
   updateComplementaryExam, 
   validateExamData,
+  transformExamToBackend,
   EXAM_TYPES 
 } from '../../utils/complementaryExamsService';
 
@@ -15,10 +16,8 @@ import {
 const ExamModal = ({ isOpen, onClose, patientId, exam, onSuccess }) => {
   const [formData, setFormData] = useState({
     typeExamen: '',
-    dateDemande: new Date().toISOString().split('T')[0],
-    dateRealisation: '',
-    resultats: '',
-    observations: ''
+    date: new Date().toISOString().split('T')[0],
+    description: ''
   });
   
   const [errors, setErrors] = useState([]);
@@ -33,25 +32,22 @@ const ExamModal = ({ isOpen, onClose, patientId, exam, onSuccess }) => {
   useEffect(() => {
     if (exam) {
       setFormData({
-        typeExamen: exam.typeExamen || '',
-        dateDemande: exam.dateDemande ? new Date(exam.dateDemande).toISOString().split('T')[0] : '',
-        dateRealisation: exam.dateRealisation ? new Date(exam.dateRealisation).toISOString().split('T')[0] : '',
-        resultats: exam.resultats || '',
-        observations: exam.observations || ''
+        typeExamen: exam.typeExamen || exam.type || '',
+        date: exam.date ? new Date(exam.date).toISOString().split('T')[0] : '',
+        description: exam.description || exam.resultats || ''
       });
       
       // Check if exam type is custom
-      if (exam.typeExamen && !EXAM_TYPES.includes(exam.typeExamen)) {
+      const examType = exam.typeExamen || exam.type;
+      if (examType && !EXAM_TYPES.includes(examType)) {
         setIsCustomType(true);
       }
     } else {
       // Reset form for new exam
       setFormData({
         typeExamen: '',
-        dateDemande: new Date().toISOString().split('T')[0],
-        dateRealisation: '',
-        resultats: '',
-        observations: ''
+        date: new Date().toISOString().split('T')[0],
+        description: ''
       });
       setIsCustomType(false);
     }
@@ -104,19 +100,31 @@ const ExamModal = ({ isOpen, onClose, patientId, exam, onSuccess }) => {
     setErrors([]);
 
     try {
-      // Prepare data for API
+      // Prepare data for API matching Prisma schema
       const examData = {
-        typeExamen: formData.typeExamen,
-        dateDemande: new Date(formData.dateDemande).toISOString(),
-        dateRealisation: formData.dateRealisation ? new Date(formData.dateRealisation).toISOString() : null,
-        resultats: formData.resultats || null,
-        observations: formData.observations || null
+        patientId: parseInt(patientId),
+        type: formData.typeExamen,
+        description: formData.description,
+        date: new Date(formData.date).toISOString()
       };
 
+      // Validate patientId
+      if (!examData.patientId || isNaN(examData.patientId)) {
+        setErrors(['ID patient invalide']);
+        setIsSubmitting(false);
+        return;
+      }
+
       if (isEditMode) {
-        await updateComplementaryExam(patientId, exam.id, examData);
+        // For update, don't send patientId (it's immutable)
+        const updateData = {
+          type: examData.type,
+          description: examData.description,
+          date: examData.date
+        };
+        await updateComplementaryExam(exam.id, updateData);
       } else {
-        await createComplementaryExam(patientId, examData);
+        await createComplementaryExam(examData);
       }
 
       onSuccess();
@@ -243,71 +251,36 @@ const ExamModal = ({ isOpen, onClose, patientId, exam, onSuccess }) => {
                 )}
               </div>
 
-              {/* Date Fields */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Date Demande */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Date de demande <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                      type="date"
-                      name="dateDemande"
-                      value={formData.dateDemande}
-                      onChange={handleChange}
-                      required
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-500 focus:border-transparent"
-                    />
-                  </div>
-                </div>
-
-                {/* Date Réalisation */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Date de réalisation
-                  </label>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                      type="date"
-                      name="dateRealisation"
-                      value={formData.dateRealisation}
-                      onChange={handleChange}
-                      min={formData.dateDemande}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-500 focus:border-transparent"
-                    />
-                  </div>
+              {/* Date Field */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Date de l'examen <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="date"
+                    name="date"
+                    value={formData.date}
+                    onChange={handleChange}
+                    required
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-500 focus:border-transparent"
+                  />
                 </div>
               </div>
 
-              {/* Résultats */}
+              {/* Description */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Résultats
+                  Description / Résultats <span className="text-red-500">*</span>
                 </label>
                 <textarea
-                  name="resultats"
-                  value={formData.resultats}
+                  name="description"
+                  value={formData.description}
                   onChange={handleChange}
-                  rows={4}
-                  placeholder="Saisissez les résultats de l'examen..."
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-500 focus:border-transparent resize-none"
-                />
-              </div>
-
-              {/* Observations */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Observations
-                </label>
-                <textarea
-                  name="observations"
-                  value={formData.observations}
-                  onChange={handleChange}
-                  rows={3}
-                  placeholder="Ajoutez vos observations..."
+                  rows={6}
+                  required
+                  placeholder="Saisissez la description et les résultats de l'examen..."
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-500 focus:border-transparent resize-none"
                 />
               </div>

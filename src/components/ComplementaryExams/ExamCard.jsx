@@ -52,7 +52,7 @@ const ExamCard = ({ exam, patientId, onEdit, onDelete, onFileUpload, onRefresh }
    */
   const handleDownload = async (fileId, fileName) => {
     try {
-      await downloadExamFile(patientId, exam.id, fileId, fileName);
+      await downloadExamFile(exam.id, fileId, fileName);
     } catch (error) {
       console.error('Error downloading file:', error);
       alert('Erreur lors du téléchargement du fichier');
@@ -69,7 +69,7 @@ const ExamCard = ({ exam, patientId, onEdit, onDelete, onFileUpload, onRefresh }
 
     setDeletingFileId(fileId);
     try {
-      await deleteExamFile(patientId, exam.id, fileId);
+      await deleteExamFile(exam.id, fileId);
       onRefresh();
     } catch (error) {
       console.error('Error deleting file:', error);
@@ -117,20 +117,13 @@ const ExamCard = ({ exam, patientId, onEdit, onDelete, onFileUpload, onRefresh }
           {/* Info */}
           <div className="flex-1 min-w-0">
             <h3 className="text-lg font-semibold text-gray-900 truncate">
-              {exam.typeExamen}
+              {exam.typeExamen || exam.type}
             </h3>
             <div className="flex items-center gap-4 mt-1 text-sm text-gray-600">
               <div className="flex items-center gap-1">
                 <Calendar className="w-4 h-4" />
-                <span>Demandé le {formatDate(exam.dateDemande)}</span>
+                <span>{formatDate(exam.date)}</span>
               </div>
-              {exam.dateRealisation && (
-                <div className="flex items-center gap-1">
-                  <span className="text-green-600 font-medium">
-                    Réalisé le {formatDate(exam.dateRealisation)}
-                  </span>
-                </div>
-              )}
             </div>
             {exam.fichiers && exam.fichiers.length > 0 && (
               <div className="mt-1 text-sm text-gray-500">
@@ -181,19 +174,11 @@ const ExamCard = ({ exam, patientId, onEdit, onDelete, onFileUpload, onRefresh }
             className="border-t border-gray-200 overflow-hidden"
           >
             <div className="p-4 space-y-4 bg-gray-50">
-              {/* Results */}
-              {exam.resultats && (
+              {/* Description */}
+              {(exam.description || exam.resultats) && (
                 <div>
-                  <h4 className="text-sm font-semibold text-gray-700 mb-2">Résultats</h4>
-                  <p className="text-sm text-gray-600 whitespace-pre-wrap">{exam.resultats}</p>
-                </div>
-              )}
-
-              {/* Observations */}
-              {exam.observations && (
-                <div>
-                  <h4 className="text-sm font-semibold text-gray-700 mb-2">Observations</h4>
-                  <p className="text-sm text-gray-600 whitespace-pre-wrap">{exam.observations}</p>
+                  <h4 className="text-sm font-semibold text-gray-700 mb-2">Description</h4>
+                  <p className="text-sm text-gray-600 whitespace-pre-wrap">{exam.description || exam.resultats}</p>
                 </div>
               )}
 

@@ -9,14 +9,17 @@ import {
   CheckCircle,
   AlertCircle,
   Search,
-  Filter
+  Filter,
+  FileImage,
+  Calendar
 } from 'lucide-react';
 import ExamCard from './ExamCard';
 import ExamModal from './ExamModal';
 import FileUploadModal from './FileUploadModal';
 import { 
   getComplementaryExams, 
-  deleteComplementaryExam 
+  deleteComplementaryExam,
+  transformExamFromBackend
 } from '../../utils/complementaryExamsService';
 
 /**
@@ -41,7 +44,6 @@ const ComplementaryExamsSection = ({ patientId }) => {
   
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all'); // all, pending, completed
 
   /**
    * Load exams from API
@@ -52,8 +54,10 @@ const ComplementaryExamsSection = ({ patientId }) => {
     
     try {
       const response = await getComplementaryExams(patientId);
-      setExams(response.examens || []);
-      setStatistics(response.statistiques || { total: 0, enAttente: 0, realises: 0 });
+      // Transform exams from backend to component format
+      const transformedExams = (response.exams || []).map(transformExamFromBackend);
+      setExams(transformedExams);
+      setStatistics(response.statistics || { total: 0, completed: 0, pending: 0 });
     } catch (error) {
       console.error('Error loading exams:', error);
       setError('Erreur lors du chargement des examens');
@@ -80,24 +84,19 @@ const ComplementaryExamsSection = ({ patientId }) => {
 
     // Apply search filter
     if (searchTerm) {
-      filtered = filtered.filter(exam => 
-        exam.typeExamen.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (exam.resultats && exam.resultats.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (exam.observations && exam.observations.toLowerCase().includes(searchTerm.toLowerCase()))
-      );
-    }
-
-    // Apply status filter
-    if (statusFilter !== 'all') {
       filtered = filtered.filter(exam => {
-        if (statusFilter === 'pending') return !exam.dateRealisation;
-        if (statusFilter === 'completed') return !!exam.dateRealisation;
-        return true;
+        const type = (exam.typeExamen || exam.type || '').toLowerCase();
+        const desc = (exam.description || exam.resultats || '').toLowerCase();
+        const search = searchTerm.toLowerCase();
+        return type.includes(search) || desc.includes(search);
       });
     }
 
+    // Note: Status filter removed since we only have one date field now
+    // Can be re-added if backend provides status field
+
     setFilteredExams(filtered);
-  }, [exams, searchTerm, statusFilter]);
+  }, [exams, searchTerm]);
 
   /**
    * Handle create new exam
@@ -120,7 +119,7 @@ const ComplementaryExamsSection = ({ patientId }) => {
    */
   const handleDeleteExam = async (examId) => {
     try {
-      await deleteComplementaryExam(patientId, examId);
+      await deleteComplementaryExam(examId);
       await loadExams();
     } catch (error) {
       console.error('Error deleting exam:', error);
@@ -162,35 +161,39 @@ const ComplementaryExamsSection = ({ patientId }) => {
           </div>
         </motion.div>
 
-        {/* Pending Exams */}
+        {/* With Files */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-6 text-white shadow-lg"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-orange-100 text-sm font-medium">En attente</p>
-              <p className="text-3xl font-bold mt-2">{statistics.enAttente}</p>
-            </div>
-            <Clock className="w-12 h-12 text-orange-200 opacity-80" />
-          </div>
-        </motion.div>
-
-        {/* Completed Exams */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
           className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-6 text-white shadow-lg"
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-green-100 text-sm font-medium">Réalisés</p>
-              <p className="text-3xl font-bold mt-2">{statistics.realises}</p>
+              <p className="text-green-100 text-sm font-medium">Avec fichiers</p>
+              <p className="text-3xl font-bold mt-2">{exams.filter(e => e.fichiers && e.fichiers.length > 0).length}</p>
             </div>
-            <CheckCircle className="w-12 h-12 text-green-200 opacity-80" />
+            <FileImage className="w-12 h-12 text-green-200 opacity-80" />
+          </div>
+        </motion.div>
+
+        {/* Recent */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 text-white shadow-lg"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-purple-100 text-sm font-medium">Ce mois</p>
+              <p className="text-3xl font-bold mt-2">{exams.filter(e => {
+                const examDate = new Date(e.date);
+                const now = new Date();
+                return examDate.getMonth() === now.getMonth() && examDate.getFullYear() === now.getFullYear();
+              }).length}</p>
+            </div>
+            <Calendar className="w-12 h-12 text-purple-200 opacity-80" />
           </div>
         </motion.div>
       </div>
@@ -210,16 +213,7 @@ const ComplementaryExamsSection = ({ patientId }) => {
             />
           </div>
 
-          {/* Status Filter */}
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-500 focus:border-transparent"
-          >
-            <option value="all">Tous les examens</option>
-            <option value="pending">En attente</option>
-            <option value="completed">Réalisés</option>
-          </select>
+
         </div>
 
         {/* Action Buttons */}
@@ -280,15 +274,15 @@ const ComplementaryExamsSection = ({ patientId }) => {
         >
           <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            {searchTerm || statusFilter !== 'all' ? 'Aucun résultat' : 'Aucun examen'}
+            {searchTerm ? 'Aucun résultat' : 'Aucun examen'}
           </h3>
           <p className="text-gray-600 mb-6">
-            {searchTerm || statusFilter !== 'all' 
-              ? 'Essayez de modifier vos filtres de recherche'
+            {searchTerm 
+              ? 'Essayez de modifier votre recherche'
               : 'Commencez par créer un nouvel examen complémentaire'
             }
           </p>
-          {!searchTerm && statusFilter === 'all' && (
+          {!searchTerm && (
             <button
               onClick={handleCreateExam}
               className="inline-flex items-center gap-2 px-6 py-3 bg-medical-600 text-white rounded-lg hover:bg-medical-700 transition-colors"

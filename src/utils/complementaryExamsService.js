@@ -1,6 +1,7 @@
 /**
  * Complementary Exams Service
  * API service for managing complementary medical exams and files
+ * Adapted to match Prisma schema: ComplementaryExam and ExamFile models
  */
 
 const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000';
@@ -27,12 +28,14 @@ const getAuthHeaders = () => {
 
 /**
  * Get all complementary exams for a specific patient
- * @param {string} patientId - Patient ID
+ * Endpoint: GET /medecin/complementary-exams/patient/:patientId
+ * @param {number} patientId - Patient ID
  * @returns {Promise<Object>} Response with exams list and statistics
+ * Response format: { exams: [], statistics: { total, completed, pending } }
  */
 export const getComplementaryExams = async (patientId) => {
   try {
-    const response = await fetch(`${baseURL}/medecin/patients/${patientId}/examens-complementaires`, {
+    const response = await fetch(`${baseURL}/medecin/complementary-exams/patient/${patientId}`, {
       method: 'GET',
       headers: getAuthHeaders()
     });
@@ -50,13 +53,14 @@ export const getComplementaryExams = async (patientId) => {
 
 /**
  * Get a single complementary exam by ID
- * @param {string} patientId - Patient ID
- * @param {string} examId - Exam ID
- * @returns {Promise<Object>} Exam details
+ * Endpoint: GET /medecin/complementary-exams/:examId
+ * @param {number} examId - Exam ID
+ * @returns {Promise<Object>} Exam details with files
+ * Response format: { exam: { id, patientId, type, description, date, files: [...] } }
  */
-export const getComplementaryExamById = async (patientId, examId) => {
+export const getComplementaryExamById = async (examId) => {
   try {
-    const response = await fetch(`${baseURL}/medecin/patients/${patientId}/examens-complementaires/${examId}`, {
+    const response = await fetch(`${baseURL}/medecin/complementary-exams/${examId}`, {
       method: 'GET',
       headers: getAuthHeaders()
     });
@@ -74,18 +78,18 @@ export const getComplementaryExamById = async (patientId, examId) => {
 
 /**
  * Create a new complementary exam
- * @param {string} patientId - Patient ID
+ * Endpoint: POST /medecin/complementary-exams
  * @param {Object} examData - Exam data
- * @param {string} examData.typeExamen - Exam type
- * @param {Date} examData.dateDemande - Request date
- * @param {Date} [examData.dateRealisation] - Completion date
- * @param {string} [examData.resultats] - Results
- * @param {string} [examData.observations] - Observations
+ * @param {number} examData.patientId - Patient ID (required)
+ * @param {string} examData.type - Exam type (required)
+ * @param {string} examData.description - Exam description (required)
+ * @param {string} examData.date - Exam date ISO string (required)
  * @returns {Promise<Object>} Created exam
+ * Response format: { message, exam: { id, patientId, type, description, date, ... } }
  */
-export const createComplementaryExam = async (patientId, examData) => {
+export const createComplementaryExam = async (examData) => {
   try {
-    const response = await fetch(`${baseURL}/medecin/patients/${patientId}/examens-complementaires`, {
+    const response = await fetch(`${baseURL}/medecin/complementary-exams`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(examData)
@@ -105,14 +109,18 @@ export const createComplementaryExam = async (patientId, examData) => {
 
 /**
  * Update an existing complementary exam
- * @param {string} patientId - Patient ID
- * @param {string} examId - Exam ID
+ * Endpoint: PUT /medecin/complementary-exams/:examId
+ * @param {number} examId - Exam ID
  * @param {Object} examData - Updated exam data
+ * @param {string} [examData.type] - Exam type
+ * @param {string} [examData.description] - Exam description
+ * @param {string} [examData.date] - Exam date ISO string
  * @returns {Promise<Object>} Updated exam
+ * Response format: { message, exam: { id, patientId, type, description, date, ... } }
  */
-export const updateComplementaryExam = async (patientId, examId, examData) => {
+export const updateComplementaryExam = async (examId, examData) => {
   try {
-    const response = await fetch(`${baseURL}/medecin/patients/${patientId}/examens-complementaires/${examId}`, {
+    const response = await fetch(`${baseURL}/medecin/complementary-exams/${examId}`, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify(examData)
@@ -132,13 +140,14 @@ export const updateComplementaryExam = async (patientId, examId, examData) => {
 
 /**
  * Delete a complementary exam (and all associated files)
- * @param {string} patientId - Patient ID
- * @param {string} examId - Exam ID
+ * Endpoint: DELETE /medecin/complementary-exams/:examId
+ * @param {number} examId - Exam ID
  * @returns {Promise<Object>} Deletion confirmation
+ * Response format: { message, deletedFiles: number }
  */
-export const deleteComplementaryExam = async (patientId, examId) => {
+export const deleteComplementaryExam = async (examId) => {
   try {
-    const response = await fetch(`${baseURL}/medecin/patients/${patientId}/examens-complementaires/${examId}`, {
+    const response = await fetch(`${baseURL}/medecin/complementary-exams/${examId}`, {
       method: 'DELETE',
       headers: getAuthHeaders()
     });
@@ -156,13 +165,14 @@ export const deleteComplementaryExam = async (patientId, examId) => {
 
 /**
  * Upload a file to a complementary exam
- * @param {string} patientId - Patient ID
- * @param {string} examId - Exam ID
+ * Endpoint: POST /medecin/complementary-exams/:examId/files
+ * @param {number} examId - Exam ID
  * @param {File} file - File to upload
  * @param {string} [description] - Optional file description
  * @returns {Promise<Object>} Upload confirmation with file info
+ * Response format: { message, file: { id, examId, fileName, fileUrl, fileType, fileSize, uploadDate } }
  */
-export const uploadExamFile = async (patientId, examId, file, description = '') => {
+export const uploadExamFile = async (examId, file, description = '') => {
   try {
     const formData = new FormData();
     formData.append('file', file);
@@ -171,7 +181,7 @@ export const uploadExamFile = async (patientId, examId, file, description = '') 
     }
 
     const token = getAuthToken();
-    const response = await fetch(`${baseURL}/medecin/patients/${patientId}/examens-complementaires/${examId}/fichiers`, {
+    const response = await fetch(`${baseURL}/medecin/complementary-exams/${examId}/files`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`
@@ -194,14 +204,15 @@ export const uploadExamFile = async (patientId, examId, file, description = '') 
 
 /**
  * Delete a file from a complementary exam
- * @param {string} patientId - Patient ID
- * @param {string} examId - Exam ID
- * @param {string} fileId - File ID to delete
+ * Endpoint: DELETE /medecin/complementary-exams/:examId/files/:fileId
+ * @param {number} examId - Exam ID
+ * @param {number} fileId - File ID to delete
  * @returns {Promise<Object>} Deletion confirmation
+ * Response format: { message }
  */
-export const deleteExamFile = async (patientId, examId, fileId) => {
+export const deleteExamFile = async (examId, fileId) => {
   try {
-    const response = await fetch(`${baseURL}/medecin/patients/${patientId}/examens-complementaires/${examId}/fichiers/${fileId}`, {
+    const response = await fetch(`${baseURL}/medecin/complementary-exams/${examId}/files/${fileId}`, {
       method: 'DELETE',
       headers: getAuthHeaders()
     });
@@ -219,27 +230,26 @@ export const deleteExamFile = async (patientId, examId, fileId) => {
 
 /**
  * Get download URL for an exam file
- * @param {string} patientId - Patient ID
- * @param {string} examId - Exam ID
- * @param {string} fileId - File ID
+ * @param {number} examId - Exam ID
+ * @param {number} fileId - File ID
  * @returns {string} Download URL
  */
-export const getExamFileDownloadUrl = (patientId, examId, fileId) => {
+export const getExamFileDownloadUrl = (examId, fileId) => {
   const token = getAuthToken();
-  return `${baseURL}/medecin/patients/${patientId}/examens-complementaires/${examId}/fichiers/${fileId}/download?token=${token}`;
+  return `${baseURL}/medecin/complementary-exams/${examId}/files/${fileId}/download?token=${token}`;
 };
 
 /**
  * Download an exam file
- * @param {string} patientId - Patient ID
- * @param {string} examId - Exam ID
- * @param {string} fileId - File ID
+ * Endpoint: GET /medecin/complementary-exams/:examId/files/:fileId/download
+ * @param {number} examId - Exam ID
+ * @param {number} fileId - File ID
  * @param {string} fileName - File name for download
  */
-export const downloadExamFile = async (patientId, examId, fileId, fileName) => {
+export const downloadExamFile = async (examId, fileId, fileName) => {
   try {
     const token = getAuthToken();
-    const response = await fetch(`${baseURL}/medecin/patients/${patientId}/examens-complementaires/${examId}/fichiers/${fileId}`, {
+    const response = await fetch(`${baseURL}/medecin/complementary-exams/${examId}/files/${fileId}/download`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`
@@ -271,19 +281,30 @@ export const downloadExamFile = async (patientId, examId, fileId, fileName) => {
 };
 
 /**
- * Exam types available
+ * Exam types available (based on common medical exams)
  */
 export const EXAM_TYPES = [
   'Radiographie',
   'Scanner',
   'IRM',
   'Échographie',
+  'Échographie rénale',
+  'Échographie abdominale',
+  'Échographie cardiaque',
   'ECG',
   'EEG',
   'Endoscopie',
+  'Coloscopie',
+  'Gastroscopie',
   'Biopsie',
+  'Mammographie',
+  'Doppler',
+  'Scintigraphie',
+  'PET Scan',
   'Analyse sanguine',
   'Analyse urinaire',
+  'Test d\'effort',
+  'Spirométrie',
   'Autre'
 ];
 
@@ -295,16 +316,20 @@ export const EXAM_TYPES = [
 export const validateExamData = (examData) => {
   const errors = [];
 
-  if (!examData.typeExamen || examData.typeExamen.trim() === '') {
+  if (!examData.type || examData.type.trim() === '') {
     errors.push('Type d\'examen requis');
   }
 
-  if (!examData.dateDemande) {
-    errors.push('Date de demande requise');
+  if (!examData.description || examData.description.trim() === '') {
+    errors.push('Description requise');
   }
 
-  if (examData.dateRealisation && new Date(examData.dateRealisation) < new Date(examData.dateDemande)) {
-    errors.push('La date de réalisation ne peut pas être antérieure à la date de demande');
+  if (!examData.date) {
+    errors.push('Date de l\'examen requise');
+  }
+
+  if (!examData.patientId || isNaN(parseInt(examData.patientId))) {
+    errors.push('ID patient invalide');
   }
 
   return {
@@ -339,9 +364,52 @@ export const isFileTypeAllowed = (mimeType) => {
     'image/gif',
     'application/pdf',
     'application/msword',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/dicom', // For medical imaging (DICOM files)
+    'application/zip'
   ];
   return allowedTypes.includes(mimeType);
+};
+
+/**
+ * Transform exam data from backend format to component format
+ * @param {Object} exam - Exam from backend
+ * @returns {Object} Transformed exam
+ */
+export const transformExamFromBackend = (exam) => {
+  return {
+    id: exam.id,
+    patientId: exam.patientId,
+    typeExamen: exam.type,
+    date: exam.date,
+    description: exam.description,
+    resultats: exam.description, // Map description to resultats for compatibility
+    observations: '', // Can be added to schema later if needed
+    fichiers: exam.files ? exam.files.map(file => ({
+      id: file.id,
+      nomFichier: file.fileName,
+      cheminFichier: file.fileUrl,
+      typeFichier: file.fileType,
+      tailleFichier: file.fileSize,
+      uploadDate: file.uploadDate
+    })) : [],
+    createdAt: exam.createdAt,
+    updatedAt: exam.updatedAt
+  };
+};
+
+/**
+ * Transform exam data from component format to backend format
+ * @param {Object} examData - Exam from component
+ * @returns {Object} Transformed exam for backend
+ */
+export const transformExamToBackend = (examData) => {
+  return {
+    patientId: parseInt(examData.patientId),
+    type: examData.typeExamen || examData.type,
+    description: examData.resultats || examData.description,
+    date: examData.date
+  };
 };
 
 export default {
@@ -357,5 +425,7 @@ export default {
   EXAM_TYPES,
   validateExamData,
   formatFileSize,
-  isFileTypeAllowed
+  isFileTypeAllowed,
+  transformExamFromBackend,
+  transformExamToBackend
 };
