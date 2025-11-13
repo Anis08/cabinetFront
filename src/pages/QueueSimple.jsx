@@ -685,6 +685,97 @@ const QueueSimple = () => {
 
   }
 
+  const handleReturnToAbsent = async (rendezVousId) => {
+
+    const confirmed = window.confirm("Êtes-vous sûr de vouloir annuler et retourner le patient à la file d'absent ?");
+    if (!confirmed) return;
+    
+    if (!rendezVousId) {
+      return { error: 'Tous les champs sont obligatoires.' }
+    }
+
+    try {
+      let response = await fetch(`${baseURL}/medecin/return-absent`, {
+        method: 'POST',
+        body: JSON.stringify({
+          rendezVousId
+        }),
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          "Content-Type": "application/json",
+        },
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        if (response.status == 403) {
+          logout();
+          return
+        }
+        if (response.status == 401) {
+          const refreshResponse = await refresh();
+          if (!refreshResponse) {
+            logout();
+            return
+          }
+
+
+          response = await fetch(`${baseURL}/medecin/return-absent`, {
+            method: 'POST',
+            body: JSON.stringify({
+              rendezVousId
+            }),
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
+              "Content-Type": "application/json",
+            },
+            credentials: 'include',
+          });
+
+        }
+
+        if (response.status === 400) {
+
+          alert('Requete invalide');
+          return;
+        }
+
+        if (response.status === 409) {
+
+          alert('Un rendez-vous identique existe déjà pour ce patient à cette date.');
+          return;
+        }
+
+
+
+        if (response.status === 500) {
+
+          alert('Le serveur a rencontré une erreur. Veuillez réessayer plus tard.');
+          return;
+        }
+      }
+
+      const data = await response.json();
+
+      setTodayAppointments(
+
+        todayAppointments.map(ap => {
+          if (ap.id === rendezVousId) {
+            return { ...ap, state: 'Scheduled', startTime: null };
+          }
+          return ap;
+        })
+
+      );
+
+
+    }
+    catch (error) {
+      return { error: 'Une erreur est survenue lors de la création du rendez-vous.' }
+    }
+
+  }
+
   // Function to finish consultation (update backend)
   const finishConsultation = async (rendezVousId) => {
     setFinishEnabled(false)
@@ -1161,6 +1252,13 @@ const QueueSimple = () => {
                         {getStatusIcon('en_attente')}
                         <span>en attente</span>
                       </div>
+
+                      <button
+                      className="ml-2 px-3 py-2 rounded bg-yellow-500 text-white hover:bg-yellow-600 transition-colors text-xs font-semibold"
+                      onClick={() => handleReturnToAbsent(item.id)}
+                    >
+                      Annuler
+                    </button>
 
                       {/* Actions */}
                       <div className="flex items-center space-x-1">
