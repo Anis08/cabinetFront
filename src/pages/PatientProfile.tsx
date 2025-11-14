@@ -380,15 +380,11 @@ const PatientProfile: React.FC = () => {
   function getAgeFromDate(dateString) {
     const birthDate = new Date(dateString);
     const today = new Date();
-
     let age = today.getFullYear() - birthDate.getFullYear();
     const monthDiff = today.getMonth() - birthDate.getMonth();
-
-    // Adjust if birthday hasn't occurred yet this year
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
       age--;
     }
-
     return age;
   }
 
@@ -402,8 +398,8 @@ const PatientProfile: React.FC = () => {
       };
     }
 
-    const completed = patient.rendezVous.filter(rdv => rdv.status === 'Completed').length;
-    const missed = patient.rendezVous.filter(rdv => rdv.status === 'Cancelled').length;
+    const completed = patient.rendezVous.filter(rdv => rdv.state === 'Completed').length;
+    const missed = patient.rendezVous.filter(rdv => rdv.state === 'Cancelled').length;
     
     return {
       total: patient.rendezVous.length,
@@ -1553,184 +1549,8 @@ const PatientProfile: React.FC = () => {
 
         {/* OLD: Examens Complémentaires Section - Simple Design (TO BE REMOVED) */}
         {/* Kept temporarily for reference - can be safely deleted after testing new component */}
-        {false && (<div>
-        <div className="mb-8">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-            {/* Simple Header with Orange gradient */}
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <FileImage className="w-5 h-5 text-orange-500" />
-                <h3 className="text-lg font-semibold text-gray-800">Examens Complémentaires</h3>
-              </div>
-              <button
-                onClick={handleAddExam}
-                className="bg-gradient-to-r from-orange-500 to-amber-500 text-white px-4 py-2 rounded-lg font-medium hover:shadow-lg transition-all duration-200 flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                Nouvel examen
-              </button>
-            </div>
-
-            {/* Content Area with Accordion */}
-            {exams.length > 0 ? (
-              <div className="divide-y divide-gray-200">
-                {exams.map((exam) => (
-                  <div key={exam.id} className="bg-white">
-                    {/* Exam Header (always visible) */}
-                    <div className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
-                      <div className="flex items-center gap-4 flex-1">
-                        {/* Toggle button */}
-                        <button
-                          onClick={() => toggleExamExpansion(exam.id)}
-                          className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
-                          title={expandedExams[exam.id] ? "Masquer les détails" : "Afficher les détails"}
-                        >
-                          {expandedExams[exam.id] ? (
-                            <ChevronUp className="w-5 h-5 text-gray-600" />
-                          ) : (
-                            <ChevronDown className="w-5 h-5 text-gray-600" />
-                          )}
-                        </button>
-
-                        {/* Exam info */}
-                        <div className="flex items-center gap-3 flex-1">
-                          <h4 className="font-semibold text-gray-800">{exam.type}</h4>
-                          <span className="text-sm text-gray-500">
-                            {new Date(exam.date).toLocaleDateString('fr-FR')}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Action buttons */}
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleEditExam(exam)}
-                          className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
-                          title="Modifier"
-                        >
-                          <Edit className="w-5 h-5" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteExam(exam.id)}
-                          className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
-                          title="Supprimer"
-                        >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Expanded Content (conditional) */}
-                    {expandedExams[exam.id] && (
-                      <div className="px-6 pb-6">
-                        {/* Description */}
-                        <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-                          <p className="text-sm font-semibold text-gray-700 mb-2">Description:</p>
-                          <p className="text-sm text-gray-600">{exam.description}</p>
-                        </div>
-
-                        {/* Files Section */}
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between">
-                            <h4 className="text-sm font-medium text-gray-700 flex items-center">
-                              <FileImage className="w-4 h-4 mr-2 text-orange-500" />
-                              Fichiers associés ({exam.files.length})
-                            </h4>
-                            <label className="cursor-pointer">
-                              <input
-                                type="file"
-                                className="hidden"
-                                accept=".pdf,.jpg,.jpeg,.png,.dcm"
-                                onChange={(e) => handleFileUploadForExam(exam.id, e)}
-                                disabled={uploadingFile}
-                              />
-                              <span className="flex items-center space-x-2 px-3 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-sm">
-                                <Upload className="w-4 h-4" />
-                                <span>{uploadingFile ? 'Upload...' : 'Ajouter'}</span>
-                              </span>
-                            </label>
-                          </div>
-
-                          {exam.files.length > 0 ? (
-                            <div className="overflow-x-auto bg-gray-50 rounded-lg">
-                              <table className="w-full">
-                                <thead>
-                                  <tr className="border-b border-gray-200">
-                                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Fichier</th>
-                                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Taille</th>
-                                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Date</th>
-                                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Actions</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {exam.files.map((file) => (
-                                    <tr key={file.id} className="border-b border-gray-100 hover:bg-white transition-colors">
-                                      <td className="py-3 px-4 text-sm">
-                                        <div className="flex items-center gap-2">
-                                          {getFileIcon(file?.fileType)}
-                                          <span className="font-medium text-gray-800 truncate" title={file.fileName}>
-                                            {file?.fileName}
-                                          </span>
-                                        </div>
-                                      </td>
-                                      <td className="py-3 px-4 text-sm text-gray-600">
-                                        {formatFileSize(file?.fileSize)}
-                                      </td>
-                                      <td className="py-3 px-4 text-sm text-gray-600">
-                                        {new Date(file.uploadDate).toLocaleDateString('fr-FR')}
-                                      </td>
-                                      <td className="py-3 px-4">
-                                        <div className="flex items-center gap-2">
-                                          <button
-                                            onClick={() => handlePreviewFile(file)}
-                                            className="p-2 text-orange-600 hover:bg-orange-100 rounded-lg transition-colors"
-                                            title="Voir"
-                                          >
-                                            <Eye className="w-4 h-4" />
-                                          </button>
-                                          <button
-                                            onClick={() => handleDownloadFile(file)}
-                                            className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors"
-                                            title="Télécharger"
-                                          >
-                                            <Download className="w-4 h-4" />
-                                          </button>
-                                          <button
-                                            onClick={() => handleDeleteFile(exam.id, file.id)}
-                                            className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
-                                            title="Supprimer"
-                                          >
-                                            <Trash2 className="w-4 h-4" />
-                                          </button>
-                                        </div>
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
-                          ) : (
-                            <div className="text-center py-6 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-                              <FileText className="w-10 h-10 text-gray-400 mx-auto mb-2" />
-                              <p className="text-sm text-gray-500">Aucun fichier associé</p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="p-12 text-center text-gray-500">
-                <FileImage className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                <p className="text-lg font-medium mb-2">Aucun examen complémentaire</p>
-                <p className="text-sm">Cliquez sur "Nouvel examen" pour commencer</p>
-              </div>
-            )}
-          </div>
-        </div>
       </div>
+        
 
       {/* Add Exam Modal - Simple Design */}
       {showExamModal && (
@@ -1854,7 +1674,7 @@ const PatientProfile: React.FC = () => {
                 />
               ) : (
                 <div className="text-center py-12">
-                  <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <FileText className="w-10 h-10 text-gray-400 mx-auto mb-4" />
                   <p className="text-lg font-medium text-gray-700 mb-2">
                     Aperçu non disponible pour ce type de fichier
                   </p>
@@ -1886,8 +1706,6 @@ const PatientProfile: React.FC = () => {
           </div>
         </div>
       )}
-        </div>)}
-        {/* END OLD CODE - Can be deleted after testing */}
 
       {/* History Modal */}
       {showHistoryModal && (
@@ -2373,6 +2191,7 @@ const PatientProfile: React.FC = () => {
         />
       )}
     </div>
+    
   );
 };
 
