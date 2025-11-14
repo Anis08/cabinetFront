@@ -14,8 +14,8 @@ import CalendarSimple from './pages/CalendarSimple'
 import HistorySimple from './pages/HistorySimple'
 import BillingSimple from './pages/BillingSimple'
 import StatisticsAdvanced from './pages/StatisticsAdvanced'
-import SignUp from './pages/signup';
-import Login from './pages/login';
+import SignUp from './pages/Signup';
+import Login from './pages/Login';
 import AuthProvider from './store/AuthProvider';
 import ProtectedRoute from './wrappers/ProtectedRoute';
 import LoggedReirect from './wrappers/LoggedRedirect';
