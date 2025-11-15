@@ -18,14 +18,48 @@ import { useAuth } from '../../store/AuthProvider';
 
 // Valeurs normales de référence pour chaque examen
 const NORMAL_RANGES = {
-  'Glycémie à jeun': { min: 3.9, max: 5.5, unit: 'mmol/L', displayName: 'Glycémie à jeun' },
-  'Cholestérol total': { min: 0, max: 5.2, unit: 'mmol/L', displayName: 'Cholestérol total' },
-  'HDL Cholestérol': { min: 1.0, max: 999, unit: 'mmol/L', displayName: 'HDL Cholestérol' },
-  'LDL Cholestérol': { min: 0, max: 3.4, unit: 'mmol/L', displayName: 'LDL Cholestérol' },
-  'Triglycérides': { min: 0, max: 1.7, unit: 'mmol/L', displayName: 'Triglycérides' },
-  'Hémoglobine': { min: 12.0, max: 16.0, unit: 'g/dL', displayName: 'Hémoglobine' },
-  'Créatinine': { min: 45, max: 90, unit: 'μmol/L', displayName: 'Créatinine' },
-  'TSH': { min: 0.4, max: 4.0, unit: 'mUI/L', displayName: 'TSH' }
+  "CRP": { min: 0, max: 5, unit: "mg/L", displayName: "CRP" },
+
+  "Urée sanguine": { min: 2.5, max: 7.5, unit: "mmol/L", displayName: "Urée sanguine" },
+  "Créatininémie": { min: 45, max: 90, unit: "µmol/L", displayName: "Créatininémie" },
+  "Ionogramme sanguin (Na+)": { min: 135, max: 145, unit: "mmol/L", displayName: "Sodium sanguin" },
+  "Ionogramme sanguin (K+)": { min: 3.5, max: 5.1, unit: "mmol/L", displayName: "Potassium sanguin" },
+  "Urécémie (acide urique)": { min: 140, max: 360, unit: "µmol/L", displayName: "Urécémie" },
+
+  "Calcémie": { min: 2.15, max: 2.55, unit: "mmol/L", displayName: "Calcémie" },
+  "Phosphorémie": { min: 0.8, max: 1.5, unit: "mmol/L", displayName: "Phosphorémie" },
+  "Phosphatases alcalines": { min: 40, max: 129, unit: "U/L", displayName: "Phosphatases alcalines" },
+  "Ferritinémie": { min: 30, max: 400, unit: "ng/mL", displayName: "Ferritine" },
+  "TIBC": { min: 45, max: 72, unit: "µmol/L", displayName: "TIBC (capacité totale fixation fer)" },
+  "Fer sérique": { min: 10, max: 30, unit: "µmol/L", displayName: "Fer sérique" },
+
+  "Vitamine D (25-OH)": { min: 30, max: 100, unit: "ng/mL", displayName: "Vitamine D 25-OH" },
+  "PTH": { min: 10, max: 65, unit: "pg/mL", displayName: "Parathormone (PTH)" },
+
+  "ASAT": { min: 10, max: 35, unit: "U/L", displayName: "ASAT" },
+  "ALAT": { min: 7, max: 56, unit: "U/L", displayName: "ALAT" },
+  "Gamma GT": { min: 8, max: 61, unit: "U/L", displayName: "Gamma GT" },
+  "Bilirubine totale": { min: 0, max: 17, unit: "µmol/L", displayName: "Bilirubine totale" },
+  "TP (taux de prothrombine)": { min: 70, max: 100, unit: "%", displayName: "Taux de prothrombine (TP)" },
+
+  "Sérologie Hépatite B": { min: 0, max: 0, unit: "positif/negatif", displayName: "Sérologie Hépatite B" },
+  "Sérologie Hépatite C": { min: 0, max: 0, unit: "positif/negatif", displayName: "Sérologie Hépatite C" },
+
+  "Glycémie à jeun": { min: 3.9, max: 5.5, unit: "mmol/L", displayName: "Glycémie à jeun" },
+  "HbA1c": { min: 4.0, max: 5.6, unit: "%", displayName: "HbA1c" },
+
+  "Cholestérol total": { min: 0, max: 5.2, unit: "mmol/L", displayName: "Cholestérol total" },
+  "HDL Cholestérol": { min: 1.0, max: 999, unit: "mmol/L", displayName: "HDL Cholestérol" },
+  "LDL Cholestérol": { min: 0, max: 3.4, unit: "mmol/L", displayName: "LDL Cholestérol" },
+  "Triglycérides": { min: 0, max: 1.7, unit: "mmol/L", displayName: "Triglycérides" },
+
+  "PSA total": { min: 0, max: 4, unit: "ng/mL", displayName: "PSA total" },
+  "PSA libre": { min: 0, max: 0.9, unit: "ng/mL", displayName: "PSA libre" },
+
+  "Chimie urinaire": { min: null, max: null, unit: "", displayName: "Analyse chimique urinaire" },
+  "Rapport Albuminurie/Créatininurie": { min: 0, max: 30, unit: "mg/g", displayName: "Albuminurie/Créatininurie" },
+
+  "ECBU": { min: 0, max: 0, unit: "infection/sterile", displayName: "ECBU" }
 };
 
 // Types de prélèvement disponibles
