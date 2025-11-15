@@ -368,6 +368,20 @@ const PatientProfile: React.FC = () => {
   const [editNoteText, setEditNoteText] = useState('');
   const [savingNote, setSavingNote] = useState(false);
 
+  // Vital Signs States
+  const [showVitalSignsModal, setShowVitalSignsModal] = useState(false);
+  const [selectedRendezVous, setSelectedRendezVous] = useState<any>(null);
+  const [vitalSignsForm, setVitalSignsForm] = useState({
+    paSystolique: '',
+    paDiastolique: '',
+    poids: '',
+    imc: '',
+    pcm: '',
+    pulse: '',
+    date: new Date().toISOString().split('T')[0]
+  });
+  const [savingVitalSigns, setSavingVitalSigns] = useState(false);
+
   const examTypes = [
     'Échographie rénale',
     'Scanner/IRM',
@@ -380,11 +394,15 @@ const PatientProfile: React.FC = () => {
   function getAgeFromDate(dateString) {
     const birthDate = new Date(dateString);
     const today = new Date();
+
     let age = today.getFullYear() - birthDate.getFullYear();
     const monthDiff = today.getMonth() - birthDate.getMonth();
+
+    // Adjust if birthday hasn't occurred yet this year
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
       age--;
     }
+
     return age;
   }
 
@@ -398,8 +416,8 @@ const PatientProfile: React.FC = () => {
       };
     }
 
-    const completed = patient.rendezVous.filter(rdv => rdv.state === 'Completed').length;
-    const missed = patient.rendezVous.filter(rdv => rdv.state === 'Cancelled').length;
+    const completed = patient.rendezVous.filter(rdv => rdv.status === 'Completed').length;
+    const missed = patient.rendezVous.filter(rdv => rdv.status === 'Cancelled').length;
     
     return {
       total: patient.rendezVous.length,
@@ -981,6 +999,214 @@ const PatientProfile: React.FC = () => {
     return <FileText className="w-5 h-5 text-gray-500" />;
   };
 
+  // Vital Signs Management Functions
+  const handleOpenVitalSignsModal = (rendezVous?: any) => {
+    // If a specific appointment is provided, edit that one
+    if (rendezVous) {
+      setSelectedRendezVous(rendezVous);
+      setVitalSignsForm({
+        paSystolique: rendezVous.paSystolique?.toString() || '',
+        paDiastolique: rendezVous.paDiastolique?.toString() || '',
+        poids: rendezVous.poids?.toString() || '',
+        imc: rendezVous.imc?.toString() || '',
+        pcm: rendezVous.pcm?.toString() || '',
+        pulse: rendezVous.pulse?.toString() || '',
+        date: new Date(rendezVous.date).toISOString().split('T')[0]
+      });
+    } else {
+      // Create new entry with latest values as template
+      setSelectedRendezVous(null);
+      if (patient?.rendezVous && patient.rendezVous.length > 0) {
+        const latest = patient.rendezVous[0];
+        setVitalSignsForm({
+          paSystolique: latest.paSystolique?.toString() || '',
+          paDiastolique: latest.paDiastolique?.toString() || '',
+          poids: latest.poids?.toString() || '',
+          imc: latest.imc?.toString() || '',
+          pcm: latest.pcm?.toString() || '',
+          pulse: latest.pulse?.toString() || '',
+          date: new Date().toISOString().split('T')[0]
+        });
+      } else {
+        setVitalSignsForm({
+          paSystolique: '',
+          paDiastolique: '',
+          poids: '',
+          imc: '',
+          pcm: '',
+          pulse: '',
+          date: new Date().toISOString().split('T')[0]
+        });
+      }
+    }
+    setShowVitalSignsModal(true);
+  };
+
+  const handleSaveVitalSigns = async () => {
+    // Validate that at least one field is filled
+    const hasValue = Object.entries(vitalSignsForm).some(([key, value]) => 
+      key !== 'date' && value && value.trim() !== ''
+    );
+
+    if (!hasValue) {
+      alert('Veuillez remplir au moins une constante vitale');
+      return;
+    }
+
+    setSavingVitalSigns(true);
+    try {
+      const vitalSignsData = {
+        paSystolique: vitalSignsForm.paSystolique ? parseFloat(vitalSignsForm.paSystolique) : null,
+        paDiastolique: vitalSignsForm.paDiastolique ? parseFloat(vitalSignsForm.paDiastolique) : null,
+        poids: vitalSignsForm.poids ? parseFloat(vitalSignsForm.poids) : null,
+        imc: vitalSignsForm.imc ? parseFloat(vitalSignsForm.imc) : null,
+        pcm: vitalSignsForm.pcm ? parseFloat(vitalSignsForm.pcm) : null,
+        pulse: vitalSignsForm.pulse ? parseFloat(vitalSignsForm.pulse) : null
+      };
+
+      // If editing an existing appointment
+      if (selectedRendezVous) {
+        const rendezVousId = selectedRendezVous._id || selectedRendezVous.id;
+        let response = await fetch(`${baseURL}/medecin/rendez-vous/${rendezVousId}/vital-signs`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify(vitalSignsData),
+        });
+
+      if (!response.ok) {
+        if (response.status === 403) {
+          logout();
+          return;
+        }
+        if (response.status === 401) {
+          const refreshResponse = await refresh();
+          if (!refreshResponse) {
+            logout();
+            return;
+          }
+          response = await fetch(`${baseURL}/medecin/vital-signs`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`,
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify(vitalSignsData),
+          });
+        }
+      }
+
+        if (response.ok) {
+          const data = await response.json();
+          // Update patient state with updated vital signs
+          setPatient(prevPatient => {
+            if (!prevPatient) return prevPatient;
+            return {
+              ...prevPatient,
+              rendezVous: prevPatient.rendezVous.map(rdv => 
+                (rdv._id || rdv.id) === rendezVousId 
+                  ? { ...rdv, ...vitalSignsData }
+                  : rdv
+              )
+            };
+          });
+          setShowVitalSignsModal(false);
+          setSelectedRendezVous(null);
+          setVitalSignsForm({
+            paSystolique: '',
+            paDiastolique: '',
+            poids: '',
+            imc: '',
+            pcm: '',
+            pulse: '',
+            date: new Date().toISOString().split('T')[0]
+          });
+          alert('Constantes vitales modifiées avec succès !');
+        } else {
+          const errorData = await response.json();
+          alert(errorData.message || 'Erreur lors de la modification des constantes vitales.');
+        }
+      } else {
+        // Creating new entry
+        const newEntryData = {
+          ...vitalSignsData,
+          patientId: parseInt(patientId),
+          date: new Date(vitalSignsForm.date).toISOString(),
+          status: 'Completed'
+        };
+        
+        let response = await fetch(`${baseURL}/medecin/vital-signs`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify(newEntryData),
+        });
+
+        if (!response.ok) {
+          if (response.status === 403) {
+            logout();
+            return;
+          }
+          if (response.status === 401) {
+            const refreshResponse = await refresh();
+            if (!refreshResponse) {
+              logout();
+              return;
+            }
+            response = await fetch(`${baseURL}/medecin/vital-signs`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'Content-Type': 'application/json',
+              },
+              credentials: 'include',
+              body: JSON.stringify(newEntryData),
+            });
+          }
+        }
+
+        if (response.ok) {
+          const data = await response.json();
+          // Add new entry to patient state
+          setPatient(prevPatient => {
+            if (!prevPatient) return prevPatient;
+            return {
+              ...prevPatient,
+              rendezVous: [data.vitalSigns, ...(prevPatient.rendezVous || [])]
+            };
+          });
+          setShowVitalSignsModal(false);
+          setSelectedRendezVous(null);
+          setVitalSignsForm({
+            paSystolique: '',
+            paDiastolique: '',
+            poids: '',
+            imc: '',
+            pcm: '',
+            pulse: '',
+            date: new Date().toISOString().split('T')[0]
+          });
+          alert('Constantes vitales enregistrées avec succès !');
+        } else {
+          const errorData = await response.json();
+          alert(errorData.message || 'Erreur lors de l\'enregistrement des constantes vitales.');
+        }
+      }
+    } catch (error) {
+      console.error('Erreur:', error);
+      alert('Une erreur est survenue lors de l\'enregistrement.');
+    } finally {
+      setSavingVitalSigns(false);
+    }
+  };
+
   // Ordonnance Management Functions
   const handleViewOrdonnance = (ordonnance: any) => {
     setSelectedOrdonnance(ordonnance);
@@ -1156,13 +1382,22 @@ const PatientProfile: React.FC = () => {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-2xl font-bold text-gray-800">Constantes Vitales</h2>
-            <button
-              onClick={() => setShowHistoryModal(true)}
-              className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg hover:from-blue-600 hover:to-purple-600 transition-all shadow-md hover:shadow-lg"
-            >
-              <History className="w-4 h-4" />
-              <span>Voir l'Historique</span>
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={handleOpenVitalSignsModal}
+                className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-green-500 to-teal-500 text-white rounded-lg hover:from-green-600 hover:to-teal-600 transition-all shadow-md hover:shadow-lg"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Ajouter/Modifier</span>
+              </button>
+              <button
+                onClick={() => setShowHistoryModal(true)}
+                className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg hover:from-blue-600 hover:to-purple-600 transition-all shadow-md hover:shadow-lg"
+              >
+                <History className="w-4 h-4" />
+                <span>Voir l'Historique</span>
+              </button>
+            </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             {vitalSigns.map((vital, index) => (
@@ -1547,166 +1782,6 @@ const PatientProfile: React.FC = () => {
         {/* NEW: Examens Complémentaires Section - Modern Component-based Design with API Integration */}
         <ComplementaryExamsSection patientId={patientId} />
 
-        {/* OLD: Examens Complémentaires Section - Simple Design (TO BE REMOVED) */}
-        {/* Kept temporarily for reference - can be safely deleted after testing new component */}
-      </div>
-        
-
-      {/* Add Exam Modal - Simple Design */}
-      {showExamModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" onClick={() => setShowExamModal(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            {/* Simple Modal Header */}
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-              <h3 className="text-xl font-semibold text-gray-800">
-                {currentExam ? 'Modifier l\'examen' : 'Nouvel examen complémentaire'}
-              </h3>
-              <button
-                onClick={() => setShowExamModal(false)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <X className="w-5 h-5 text-gray-500" />
-              </button>
-            </div>
-
-            {/* Simple Modal Content */}
-            <div className="p-6 space-y-6">
-              {/* Exam Type */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-3">
-                  Type d'examen *
-                </label>
-                <select
-                  value={examForm.type}
-                  onChange={(e) => setExamForm({ ...examForm, type: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                >
-                  <option value="">Sélectionner un type</option>
-                  {examTypes.map((type) => (
-                    <option key={type} value={type}>{type}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Date */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-3">
-                  Date de l'examen *
-                </label>
-                <input
-                  type="date"
-                  value={examForm.date}
-                  onChange={(e) => setExamForm({ ...examForm, date: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                />
-              </div>
-
-              {/* Description */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-3">
-                  Description / Résultats *
-                </label>
-                <textarea
-                  value={examForm.description}
-                  onChange={(e) => setExamForm({ ...examForm, description: e.target.value })}
-                  rows={4}
-                  placeholder="Décrivez les résultats de l'examen, observations importantes, etc."
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none"
-                />
-              </div>
-
-              <p className="text-sm text-gray-500 italic">
-                * Champs obligatoires. Vous pourrez ajouter des fichiers après la création de l'examen.
-              </p>
-            </div>
-
-            {/* Simple Modal Footer */}
-            <div className="flex justify-end gap-3 pt-4 px-6 pb-6 border-t border-gray-200">
-              <button
-                onClick={() => setShowExamModal(false)}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={handleSaveExam}
-                className="px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-lg font-medium hover:shadow-lg transition-all duration-200 flex items-center gap-2"
-              >
-                <Upload className="w-4 h-4" />
-                {currentExam ? 'Enregistrer' : 'Créer'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* File Preview Modal - Simple Design */}
-      {showFilePreview && selectedPreviewFile && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50" onClick={() => setShowFilePreview(false)}>
-          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
-            {/* Simple Modal Header */}
-            <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-gray-800 flex items-center truncate">
-                <Eye className="w-5 h-5 mr-3 text-orange-500" />
-                <span className="truncate">{selectedPreviewFile.fileName}</span>
-              </h2>
-              <button
-                onClick={() => setShowFilePreview(false)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <X className="w-5 h-5 text-gray-500" />
-              </button>
-            </div>
-
-            {/* Modal Content */}
-            <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
-              {selectedPreviewFile.fileType.includes('image') ? (
-                <img
-                  src={`https://drive.google.com/uc?id=${selectedPreviewFile.fileUrl}`}
-                  alt={selectedPreviewFile.fileName}
-                  className="w-full h-auto rounded-lg"
-                />
-              ) : selectedPreviewFile.fileType.includes('pdf') ? (
-                <iframe
-                  src={selectedPreviewFile.fileUrl}
-                  className="w-full h-[600px] rounded-lg border"
-                  title={selectedPreviewFile.fileName}
-                />
-              ) : (
-                <div className="text-center py-12">
-                  <FileText className="w-10 h-10 text-gray-400 mx-auto mb-4" />
-                  <p className="text-lg font-medium text-gray-700 mb-2">
-                    Aperçu non disponible pour ce type de fichier
-                  </p>
-                  <button
-                    onClick={() => handleDownloadFile(selectedPreviewFile)}
-                    className="mt-4 px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center space-x-2 mx-auto"
-                  >
-                    <Download className="w-5 h-5" />
-                    <span>Télécharger le fichier</span>
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Simple Modal Footer */}
-            <div className="bg-gray-50 px-6 py-4 flex justify-between items-center border-t border-gray-200">
-              <div className="text-sm text-gray-600">
-                <span className="font-semibold">Taille:</span> {formatFileSize(selectedPreviewFile.size)} •{' '}
-                <span className="font-semibold">Date:</span> {new Date(selectedPreviewFile.uploadDate).toLocaleDateString('fr-FR')}
-              </div>
-              <button
-                onClick={() => handleDownloadFile(selectedPreviewFile)}
-                className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center space-x-2"
-              >
-                <Download className="w-5 h-5" />
-                <span>Télécharger</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* History Modal */}
       {showHistoryModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" onClick={() => setShowHistoryModal(false)}>
@@ -1764,11 +1839,20 @@ const PatientProfile: React.FC = () => {
                               </p>
                             </div>
                           </div>
-                                                   {index === 0 && (
-                            <span className="px-3 py-1 bg-green-100 text-green-700 text-sm font-medium rounded-full">
-                              Dernière consultation
-                            </span>
-                          )}
+                          <div className="flex items-center gap-2">
+                            {index === 0 && (
+                              <span className="px-3 py-1 bg-green-100 text-green-700 text-sm font-medium rounded-full">
+                                Dernière consultation
+                              </span>
+                            )}
+                            <button
+                              onClick={() => handleOpenVitalSignsModal(consultation)}
+                              className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors"
+                              title="Modifier les constantes vitales"
+                            >
+                              <Edit className="w-5 h-5" />
+                            </button>
+                          </div>
                         </div>
 
                         {/* Vital Signs Grid */}
@@ -2176,6 +2260,179 @@ const PatientProfile: React.FC = () => {
         </div>
       )}
 
+      {/* Vital Signs Modal */}
+      {showVitalSignsModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" onClick={() => setShowVitalSignsModal(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            {/* Modal Header */}
+            <div className="sticky top-0 bg-gradient-to-r from-green-500 to-teal-500 px-6 py-4 flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                <Activity className="w-6 h-6" />
+                {selectedRendezVous ? 'Modifier les constantes vitales' : 'Ajouter des constantes vitales'}
+              </h2>
+              <button
+                onClick={() => setShowVitalSignsModal(false)}
+                className="text-white hover:bg-white/20 rounded-full p-2 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 space-y-6">
+              {/* Date */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Date * {selectedRendezVous && <span className="text-xs text-gray-500">(fixée par le rendez-vous)</span>}
+                </label>
+                <input
+                  type="date"
+                  value={vitalSignsForm.date}
+                  onChange={(e) => setVitalSignsForm({ ...vitalSignsForm, date: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  disabled={!!selectedRendezVous || savingVitalSigns}
+                />
+              </div>
+
+              {/* Blood Pressure */}
+              <div className="bg-red-50 border border-red-100 rounded-lg p-4">
+                <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-800 mb-3">
+                  <Heart className="w-5 h-5 text-red-500" />
+                  Pression Artérielle
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Systolique (mmHg)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={vitalSignsForm.paSystolique}
+                      onChange={(e) => setVitalSignsForm({ ...vitalSignsForm, paSystolique: e.target.value })}
+                      placeholder="120"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                      disabled={savingVitalSigns}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Diastolique (mmHg)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={vitalSignsForm.paDiastolique}
+                      onChange={(e) => setVitalSignsForm({ ...vitalSignsForm, paDiastolique: e.target.value })}
+                      placeholder="80"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                      disabled={savingVitalSigns}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Weight & BMI */}
+              <div className="bg-blue-50 border border-blue-100 rounded-lg p-4">
+                <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-800 mb-3">
+                  <Scale className="w-5 h-5 text-blue-500" />
+                  Poids & IMC
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Poids (kg)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={vitalSignsForm.poids}
+                      onChange={(e) => setVitalSignsForm({ ...vitalSignsForm, poids: e.target.value })}
+                      placeholder="70"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      disabled={savingVitalSigns}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      IMC (kg/m²)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={vitalSignsForm.imc}
+                      onChange={(e) => setVitalSignsForm({ ...vitalSignsForm, imc: e.target.value })}
+                      placeholder="22.5"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      disabled={savingVitalSigns}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* PCM & Pulse */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-4">
+                  <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-800 mb-3">
+                    <Scale className="w-5 h-5 text-indigo-500" />
+                    PCM
+                  </h3>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={vitalSignsForm.pcm}
+                    onChange={(e) => setVitalSignsForm({ ...vitalSignsForm, pcm: e.target.value })}
+                    placeholder="65"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    disabled={savingVitalSigns}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Poids Corporel Maigre (kg)</p>
+                </div>
+                <div className="bg-pink-50 border border-pink-100 rounded-lg p-4">
+                  <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-800 mb-3">
+                    <Activity className="w-5 h-5 text-pink-500" />
+                    Rythme Cardiaque
+                  </h3>
+                  <input
+                    type="number"
+                    step="1"
+                    value={vitalSignsForm.pulse}
+                    onChange={(e) => setVitalSignsForm({ ...vitalSignsForm, pulse: e.target.value })}
+                    placeholder="72"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                    disabled={savingVitalSigns}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Battements par minute (bpm)</p>
+                </div>
+              </div>
+
+              <p className="text-sm text-gray-500 italic">
+                * Remplissez au moins une constante vitale. Laissez vide les champs non concernés.
+              </p>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex justify-end gap-3 pt-4 px-6 pb-6 border-t border-gray-200 bg-gray-50">
+              <button
+                onClick={() => setShowVitalSignsModal(false)}
+                disabled={savingVitalSigns}
+                className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleSaveVitalSigns}
+                disabled={savingVitalSigns}
+                className="px-6 py-2 bg-gradient-to-r from-green-500 to-teal-500 text-white rounded-lg font-medium hover:shadow-lg transition-all duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Save className="w-4 h-4" />
+                {savingVitalSigns ? 'Enregistrement...' : 'Enregistrer'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Ordonnance Editor Modal */}
       {showOrdonnanceEditor && patient && (
         <OrdonnanceEditor
@@ -2191,7 +2448,6 @@ const PatientProfile: React.FC = () => {
         />
       )}
     </div>
-    
   );
 };
 
