@@ -72,6 +72,74 @@
 **Description**: Ajoute un nouveau rendez-vous
 **Auth**: Bearer Token required
 
+### 🔬 Complementary Exams Management
+
+#### `GET /medecin/exams/patient/:patientId` ✅ (Nouveau)
+**Used in**: ExamsList.jsx
+**Description**: Récupère tous les examens complémentaires d'un patient avec statistiques
+**Auth**: Bearer Token required
+**Response**:
+```json
+{
+  "examens": [...],
+  "stats": {
+    "total": 5,
+    "types": {
+      "Radiographie": 2,
+      "Échographie": 1
+    }
+  }
+}
+```
+
+#### `GET /medecin/exams/:id` ✅ (Nouveau)
+**Used in**: ExamsList.jsx
+**Description**: Récupère un examen complémentaire spécifique
+**Auth**: Bearer Token required
+
+#### `POST /medecin/exams` ✅ (Nouveau)
+**Used in**: ExamsList.jsx
+**Description**: Crée un nouvel examen complémentaire
+**Auth**: Bearer Token required
+**Body**:
+```json
+{
+  "patientId": "string",
+  "type": "string",
+  "nom": "string",
+  "description": "string",
+  "dateExamen": "ISO date",
+  "prescripteur": "string",
+  "statut": "En attente|Effectué|Annulé"
+}
+```
+
+#### `PUT /medecin/exams/:id` ✅ (Nouveau)
+**Used in**: ExamsList.jsx
+**Description**: Met à jour un examen complémentaire
+**Auth**: Bearer Token required
+
+#### `DELETE /medecin/exams/:id` ✅ (Nouveau)
+**Used in**: ExamsList.jsx
+**Description**: Supprime un examen et tous ses fichiers
+**Auth**: Bearer Token required
+
+#### `POST /medecin/exams/:id/upload` ✅ (Nouveau)
+**Used in**: ExamsList.jsx
+**Description**: Upload un fichier pour un examen (max 10MB, PDF/JPG/PNG/DOC/XLS)
+**Auth**: Bearer Token required
+**Content-Type**: multipart/form-data
+
+#### `DELETE /medecin/exams/:examId/files/:fileId` ✅ (Nouveau)
+**Used in**: ExamsList.jsx
+**Description**: Supprime un fichier d'un examen
+**Auth**: Bearer Token required
+
+#### `GET /medecin/exams/:examId/files/:fileId/download` ✅ (Nouveau)
+**Used in**: ExamsList.jsx
+**Description**: Télécharge un fichier d'un examen
+**Auth**: Bearer Token required
+
 ### 🕐 Waiting Queue Management
 
 #### `POST /medecin/add-to-waiting` ✅ (Utilisé)

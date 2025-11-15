@@ -9,7 +9,7 @@ import {
   ChevronDown, 
   ChevronUp,
   FileImage,
-  FilePdf,
+  
   File,
   Upload,
   X
