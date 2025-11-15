@@ -370,6 +370,10 @@ const PatientProfile: React.FC = () => {
 
   // Vital Signs States
   const [showVitalSignsModal, setShowVitalSignsModal] = useState(false);
+<<<<<<< HEAD
+=======
+  const [selectedRendezVous, setSelectedRendezVous] = useState<any>(null);
+>>>>>>> 022422cf05fe450c0e546422f24cafb737274314
   const [vitalSignsForm, setVitalSignsForm] = useState({
     paSystolique: '',
     paDiastolique: '',
@@ -999,6 +1003,7 @@ const PatientProfile: React.FC = () => {
   };
 
   // Vital Signs Management Functions
+<<<<<<< HEAD
   const handleOpenVitalSignsModal = () => {
     // Pre-fill with latest values if available
     if (patient?.rendezVous && patient.rendezVous.length > 0) {
@@ -1012,6 +1017,46 @@ const PatientProfile: React.FC = () => {
         pulse: latest.pulse?.toString() || '',
         date: new Date().toISOString().split('T')[0]
       });
+=======
+  const handleOpenVitalSignsModal = (rendezVous?: any) => {
+    // If a specific appointment is provided, edit that one
+    if (rendezVous) {
+      setSelectedRendezVous(rendezVous);
+      setVitalSignsForm({
+        paSystolique: rendezVous.paSystolique?.toString() || '',
+        paDiastolique: rendezVous.paDiastolique?.toString() || '',
+        poids: rendezVous.poids?.toString() || '',
+        imc: rendezVous.imc?.toString() || '',
+        pcm: rendezVous.pcm?.toString() || '',
+        pulse: rendezVous.pulse?.toString() || '',
+        date: new Date(rendezVous.date).toISOString().split('T')[0]
+      });
+    } else {
+      // Create new entry with latest values as template
+      setSelectedRendezVous(null);
+      if (patient?.rendezVous && patient.rendezVous.length > 0) {
+        const latest = patient.rendezVous[0];
+        setVitalSignsForm({
+          paSystolique: latest.paSystolique?.toString() || '',
+          paDiastolique: latest.paDiastolique?.toString() || '',
+          poids: latest.poids?.toString() || '',
+          imc: latest.imc?.toString() || '',
+          pcm: latest.pcm?.toString() || '',
+          pulse: latest.pulse?.toString() || '',
+          date: new Date().toISOString().split('T')[0]
+        });
+      } else {
+        setVitalSignsForm({
+          paSystolique: '',
+          paDiastolique: '',
+          poids: '',
+          imc: '',
+          pcm: '',
+          pulse: '',
+          date: new Date().toISOString().split('T')[0]
+        });
+      }
+>>>>>>> 022422cf05fe450c0e546422f24cafb737274314
     }
     setShowVitalSignsModal(true);
   };
@@ -1029,15 +1074,20 @@ const PatientProfile: React.FC = () => {
 
     setSavingVitalSigns(true);
     try {
+<<<<<<< HEAD
       // Create a new rendez-vous entry for vital signs
       const vitalSignsData = {
         patientId: parseInt(patientId),
         date: new Date(vitalSignsForm.date).toISOString(),
+=======
+      const vitalSignsData = {
+>>>>>>> 022422cf05fe450c0e546422f24cafb737274314
         paSystolique: vitalSignsForm.paSystolique ? parseFloat(vitalSignsForm.paSystolique) : null,
         paDiastolique: vitalSignsForm.paDiastolique ? parseFloat(vitalSignsForm.paDiastolique) : null,
         poids: vitalSignsForm.poids ? parseFloat(vitalSignsForm.poids) : null,
         imc: vitalSignsForm.imc ? parseFloat(vitalSignsForm.imc) : null,
         pcm: vitalSignsForm.pcm ? parseFloat(vitalSignsForm.pcm) : null,
+<<<<<<< HEAD
         pulse: vitalSignsForm.pulse ? parseFloat(vitalSignsForm.pulse) : null,
         status: 'Completed'
       };
@@ -1051,6 +1101,23 @@ const PatientProfile: React.FC = () => {
         credentials: 'include',
         body: JSON.stringify(vitalSignsData),
       });
+=======
+        pulse: vitalSignsForm.pulse ? parseFloat(vitalSignsForm.pulse) : null
+      };
+
+      // If editing an existing appointment
+      if (selectedRendezVous) {
+        const rendezVousId = selectedRendezVous._id || selectedRendezVous.id;
+        let response = await fetch(`${baseURL}/medecin/rendez-vous/${rendezVousId}/vital-signs`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify(vitalSignsData),
+        });
+>>>>>>> 022422cf05fe450c0e546422f24cafb737274314
 
       if (!response.ok) {
         if (response.status === 403) {
@@ -1075,6 +1142,7 @@ const PatientProfile: React.FC = () => {
         }
       }
 
+<<<<<<< HEAD
       if (response.ok) {
         const data = await response.json();
         // Update patient state with new vital signs
@@ -1100,6 +1168,106 @@ const PatientProfile: React.FC = () => {
       } else {
         const errorData = await response.json();
         alert(errorData.message || 'Erreur lors de l\'enregistrement des constantes vitales.');
+=======
+        if (response.ok) {
+          const data = await response.json();
+          // Update patient state with updated vital signs
+          setPatient(prevPatient => {
+            if (!prevPatient) return prevPatient;
+            return {
+              ...prevPatient,
+              rendezVous: prevPatient.rendezVous.map(rdv => 
+                (rdv._id || rdv.id) === rendezVousId 
+                  ? { ...rdv, ...vitalSignsData }
+                  : rdv
+              )
+            };
+          });
+          setShowVitalSignsModal(false);
+          setSelectedRendezVous(null);
+          setVitalSignsForm({
+            paSystolique: '',
+            paDiastolique: '',
+            poids: '',
+            imc: '',
+            pcm: '',
+            pulse: '',
+            date: new Date().toISOString().split('T')[0]
+          });
+          alert('Constantes vitales modifiées avec succès !');
+        } else {
+          const errorData = await response.json();
+          alert(errorData.message || 'Erreur lors de la modification des constantes vitales.');
+        }
+      } else {
+        // Creating new entry
+        const newEntryData = {
+          ...vitalSignsData,
+          patientId: parseInt(patientId),
+          date: new Date(vitalSignsForm.date).toISOString(),
+          status: 'Completed'
+        };
+        
+        let response = await fetch(`${baseURL}/medecin/vital-signs`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify(newEntryData),
+        });
+
+        if (!response.ok) {
+          if (response.status === 403) {
+            logout();
+            return;
+          }
+          if (response.status === 401) {
+            const refreshResponse = await refresh();
+            if (!refreshResponse) {
+              logout();
+              return;
+            }
+            response = await fetch(`${baseURL}/medecin/vital-signs`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'Content-Type': 'application/json',
+              },
+              credentials: 'include',
+              body: JSON.stringify(newEntryData),
+            });
+          }
+        }
+
+        if (response.ok) {
+          const data = await response.json();
+          // Add new entry to patient state
+          setPatient(prevPatient => {
+            if (!prevPatient) return prevPatient;
+            return {
+              ...prevPatient,
+              rendezVous: [data.vitalSigns, ...(prevPatient.rendezVous || [])]
+            };
+          });
+          setShowVitalSignsModal(false);
+          setSelectedRendezVous(null);
+          setVitalSignsForm({
+            paSystolique: '',
+            paDiastolique: '',
+            poids: '',
+            imc: '',
+            pcm: '',
+            pulse: '',
+            date: new Date().toISOString().split('T')[0]
+          });
+          alert('Constantes vitales enregistrées avec succès !');
+        } else {
+          const errorData = await response.json();
+          alert(errorData.message || 'Erreur lors de l\'enregistrement des constantes vitales.');
+        }
+>>>>>>> 022422cf05fe450c0e546422f24cafb737274314
       }
     } catch (error) {
       console.error('Erreur:', error);
@@ -1684,8 +1852,11 @@ const PatientProfile: React.FC = () => {
         {/* NEW: Examens Complémentaires Section - Modern Component-based Design with API Integration */}
         <ComplementaryExamsSection patientId={patientId} />
 
+<<<<<<< HEAD
       </div>
 
+=======
+>>>>>>> 022422cf05fe450c0e546422f24cafb737274314
       {/* History Modal */}
       {showHistoryModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" onClick={() => setShowHistoryModal(false)}>
@@ -1743,11 +1914,20 @@ const PatientProfile: React.FC = () => {
                               </p>
                             </div>
                           </div>
-                                                   {index === 0 && (
-                            <span className="px-3 py-1 bg-green-100 text-green-700 text-sm font-medium rounded-full">
-                              Dernière consultation
-                            </span>
-                          )}
+                          <div className="flex items-center gap-2">
+                            {index === 0 && (
+                              <span className="px-3 py-1 bg-green-100 text-green-700 text-sm font-medium rounded-full">
+                                Dernière consultation
+                              </span>
+                            )}
+                            <button
+                              onClick={() => handleOpenVitalSignsModal(consultation)}
+                              className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors"
+                              title="Modifier les constantes vitales"
+                            >
+                              <Edit className="w-5 h-5" />
+                            </button>
+                          </div>
                         </div>
 
                         {/* Vital Signs Grid */}
@@ -2163,7 +2343,11 @@ const PatientProfile: React.FC = () => {
             <div className="sticky top-0 bg-gradient-to-r from-green-500 to-teal-500 px-6 py-4 flex items-center justify-between">
               <h2 className="text-2xl font-bold text-white flex items-center gap-2">
                 <Activity className="w-6 h-6" />
+<<<<<<< HEAD
                 Ajouter/Modifier Constantes Vitales
+=======
+                {selectedRendezVous ? 'Modifier les constantes vitales' : 'Ajouter des constantes vitales'}
+>>>>>>> 022422cf05fe450c0e546422f24cafb737274314
               </h2>
               <button
                 onClick={() => setShowVitalSignsModal(false)}
@@ -2178,14 +2362,23 @@ const PatientProfile: React.FC = () => {
               {/* Date */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
+<<<<<<< HEAD
                   Date *
+=======
+                  Date * {selectedRendezVous && <span className="text-xs text-gray-500">(fixée par le rendez-vous)</span>}
+>>>>>>> 022422cf05fe450c0e546422f24cafb737274314
                 </label>
                 <input
                   type="date"
                   value={vitalSignsForm.date}
                   onChange={(e) => setVitalSignsForm({ ...vitalSignsForm, date: e.target.value })}
+<<<<<<< HEAD
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   disabled={savingVitalSigns}
+=======
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  disabled={!!selectedRendezVous || savingVitalSigns}
+>>>>>>> 022422cf05fe450c0e546422f24cafb737274314
                 />
               </div>
 
