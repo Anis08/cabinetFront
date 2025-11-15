@@ -621,6 +621,18 @@ const PatientProfile: React.FC = () => {
   }, [])
 
 
+  // Calculate Body Surface Area using Mosteller formula (2021)
+  const calculateBodySurfaceArea = (poids: number | null | undefined, taille: number | null | undefined): string | null => {
+    if (!poids || !taille || poids <= 0 || taille <= 0) return null;
+    // Mosteller formula: BSA (m²) = √[(Height(cm) × Weight(kg)) / 3600]
+    const bsa = Math.sqrt((taille * poids) / 3600);
+    return bsa.toFixed(2);
+  };
+
+  const bodyWeight = patient?.rendezVous[0]?.poids;
+  const bodyHeight = patient?.taille;
+  const bodySurfaceArea = calculateBodySurfaceArea(bodyWeight, bodyHeight);
+
   const vitalSigns: VitalSign[] = [
     {
       label: "Pression Artérielle",
@@ -1403,6 +1415,50 @@ const PatientProfile: React.FC = () => {
             {vitalSigns.map((vital, index) => (
               <VitalSignCard key={index} vital={vital} />
             ))}
+          </div>
+          
+          {/* Body Surface Area - Separate dedicated card */}
+          <div className="mt-4">
+            <Card className="hover:shadow-md transition-shadow border-2 border-orange-100">
+              <CardContent className="py-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3 flex-1">
+                    <div className="p-3 rounded-lg bg-gradient-to-br from-orange-50 to-orange-100">
+                      <User className="w-5 h-5 text-orange-500" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="text-sm text-gray-500 font-medium">Surface Corporelle</p>
+                        <span className="text-xs px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full font-medium">
+                          Formule Mosteller (2021)
+                        </span>
+                      </div>
+                      {bodySurfaceArea ? (
+                        <p className="text-2xl font-bold text-gray-800 mt-1">
+                          {bodySurfaceArea} <span className="text-sm font-normal text-gray-500">m²</span>
+                        </p>
+                      ) : (
+                        <div className="flex items-center gap-2 mt-1">
+                          <AlertCircle className="w-5 h-5 text-orange-500" />
+                          <p className="text-sm text-orange-600 font-medium">
+                            {!bodyWeight && !bodyHeight
+                              ? "Poids et taille manquants"
+                              : !bodyWeight
+                              ? "Poids manquant"
+                              : "Taille manquante"}
+                          </p>
+                        </div>
+                      )}
+                      {bodySurfaceArea && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          Calculé: √[(Taille × Poids) / 3600]
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
 
