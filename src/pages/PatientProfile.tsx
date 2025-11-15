@@ -1684,6 +1684,8 @@ const PatientProfile: React.FC = () => {
         {/* NEW: Examens Complémentaires Section - Modern Component-based Design with API Integration */}
         <ComplementaryExamsSection patientId={patientId} />
 
+      </div>
+
       {/* History Modal */}
       {showHistoryModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" onClick={() => setShowHistoryModal(false)}>
