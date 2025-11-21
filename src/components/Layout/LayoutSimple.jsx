@@ -15,7 +15,8 @@ import {
   Monitor,
   FileText,
   Pill,
-  Inbox
+  Inbox,
+  ClipboardEdit
 } from 'lucide-react'
 
 const LayoutSimple = ({ children }) => {
@@ -40,6 +41,12 @@ const LayoutSimple = ({ children }) => {
       href: '/home/queue',
       icon: Clock,
       current: location.pathname === '/home/queue'
+    },
+    {
+      name: 'Saisie Consultation',
+      href: '/home/consultation-input',
+      icon: ClipboardEdit,
+      current: location.pathname === '/home/consultation-input'
     },
     {
       name: 'Historique',

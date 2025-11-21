@@ -26,6 +26,7 @@ import AdsManagement from './pages/AdsManagement';
 import Ordonnances from './pages/Ordonnances';
 import Medicaments from './pages/Medicaments';
 import MedicationRequests from './pages/MedicationRequests';
+import ConsultationInput from './pages/ConsultationInput';
 
 // Page de test simple
 const TestPage = () => (
@@ -133,6 +134,7 @@ function AppSimple() {
                               <Route path="dashboard" element={<DashboardSimple />} />
                               <Route path="patients" element={<PatientsSimple />} />
                               <Route path="queue" element={<QueueSimple />} />
+                              <Route path="consultation-input" element={<ConsultationInput />} />
                               <Route path="calendar" element={<CalendarSimple />} />
                               <Route path="ordonnances" element={<Ordonnances />} />
                               <Route path="medicaments" element={<Medicaments />} />
