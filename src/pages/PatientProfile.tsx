@@ -31,6 +31,7 @@ import {
   Edit,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
   CalendarCheck,
   CalendarX,
   TrendingUp as TrendingUpIcon,
@@ -1100,7 +1101,11 @@ const PatientProfile: React.FC = () => {
       <div className=" p-8">
         {/* Patient Header */}
         <Card className="mb-8 overflow-hidden">
-          <div className="bg-gradient-to-r from-blue-500 to-purple-500 h-32"></div>
+          <div className="bg-gradient-to-r from-blue-500 to-purple-500 h-32">
+            <button onClick={() => navigate(-1)}>
+              <ChevronLeft className="w-8 h-8 text-white m-4"  />
+            </button>
+          </div>
           <CardContent className="relative pb-6">
             <div className="flex flex-col md:flex-row items-start md:items-end gap-6 ">
               <div className="flex-1">

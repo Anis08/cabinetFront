@@ -11,11 +11,15 @@ import {
   Save,
   AlertCircle,
   CheckCircle,
-  TrendingUp
+  TrendingUp,
+  Wifi,
+  WifiOff
 } from 'lucide-react';
+import { io } from 'socket.io-client';
 import { baseURL } from '../config';
 import { useAuth } from '../store/AuthProvider';
 import { useData } from '../store/DataProvider';
+import { use } from 'react';
 
 const ConsultationInput = () => {
   const { logout, refresh } = useAuth();
@@ -27,6 +31,7 @@ const ConsultationInput = () => {
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [socketConnected, setSocketConnected] = useState(false);
 
   // Formulaire de constantes vitales et notes
   const [consultationForm, setConsultationForm] = useState({
@@ -42,41 +47,92 @@ const ConsultationInput = () => {
     paye: ''
   });
 
-  // Récupérer le patient en consultation en temps réel
+  // WebSocket connection pour récupérer le patient en consultation en temps réel
   useEffect(() => {
-    const fetchCurrentPatient = async () => {
-      if (!todayAppointments) {
-        await loadTodayAppointments();
-        return;
-      }
+    // Déterminer l'URL WebSocket à partir du baseURL
+    const wsURL = baseURL.replace(/^http/, 'ws').replace(/^https/, 'wss');
+    
+    // Créer la connexion Socket.IO
+    const socket = io(wsURL, {
+      auth: {
+        token: localStorage.getItem('token')
+      },
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionAttempts: 5
+    });
+
+    // Événement de connexion
+    socket.on('connect', () => {
+      console.log('✅ WebSocket connecté');
+      setSocketConnected(true);
+      setErrorMessage('');
       
-      // Trouver le patient en consultation (state: 'In consultation')
-      const inConsultation = todayAppointments.find(
-        (apt) => apt.state === 'In consultation'
-      );
+      // Demander le patient en consultation actuel
+      socket.emit('getCurrentPatient');
+    });
+
+    // Événement de déconnexion
+    socket.on('disconnect', () => {
+      console.log('❌ WebSocket déconnecté');
+      setSocketConnected(false);
+    });
+
+    // Erreur de connexion
+    socket.on('connect_error', (error) => {
+      console.error('Erreur connexion WebSocket:', error);
+      setSocketConnected(false);
+      setErrorMessage('Connexion WebSocket impossible. Utilisation du mode polling...');
       
-      if (inConsultation) {
-        setCurrentPatient(inConsultation);
+     
+    });
+
+    // Recevoir le patient en consultation
+    socket.on('currentPatient', (patient) => {
+      console.log('📥 Patient reçu via WebSocket:', patient);
+      if (patient) {
+        setCurrentPatient(patient);
         setErrorMessage('');
       } else {
         setCurrentPatient(null);
         setErrorMessage('Aucun patient en consultation actuellement');
       }
+    });
+
+    // Mise à jour du patient en consultation
+    socket.on('patientInConsultation', (patient) => {
+      console.log('🔄 Mise à jour patient:', patient);
+      setCurrentPatient(patient);
+      setErrorMessage('');
+    });
+
+    // Patient a quitté la consultation
+    socket.on('patientLeftConsultation', () => {
+      console.log('👋 Patient a quitté la consultation');
+      setCurrentPatient(null);
+      setErrorMessage('Aucun patient en consultation actuellement');
+    });
+
+    // Mise à jour de la liste des rendez-vous
+    socket.on('appointmentsUpdate', (appointments) => {
+      console.log('📋 Mise à jour des rendez-vous:', appointments);
+      setTodayAppointments(appointments);
+    });
+
+    // Nettoyage à la déconnexion du composant
+    return () => {
+      console.log('🔌 Déconnexion WebSocket');
+      socket.disconnect();
     };
+  }, []);
 
-    fetchCurrentPatient();
-
-    // Polling toutes les 5 secondes pour mettre à jour
-    const interval = setInterval(fetchCurrentPatient, 5000);
-
-    return () => clearInterval(interval);
-  }, [todayAppointments]);
-
-  // Charger les rendez-vous du jour
+  useEffect(() => {
+    // Charger les rendez-vous du jour
   const loadTodayAppointments = async () => {
     setLoading(true);
     try {
-      let response = await fetch(`${baseURL}/medecin/today-appointments`, {
+      let response = await fetch(`${baseURL}/medecin/current-appointment`, {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -95,7 +151,7 @@ const ConsultationInput = () => {
             logout();
             return;
           }
-          response = await fetch(`${baseURL}/medecin/today-appointments`, {
+          response = await fetch(`${baseURL}/medecin/current-appointment`, {
             method: 'GET',
             headers: {
               Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -107,7 +163,7 @@ const ConsultationInput = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setTodayAppointments(data.todayAppointments);
+        setCurrentPatient(data.currentAppointment);
       }
     } catch (error) {
       console.error('Erreur lors du chargement des rendez-vous:', error);
@@ -116,6 +172,8 @@ const ConsultationInput = () => {
       setLoading(false);
     }
   };
+    loadTodayAppointments();
+  }, []);
 
   // Calculer l'IMC automatiquement
   useEffect(() => {
@@ -235,7 +293,6 @@ const ConsultationInput = () => {
       });
 
       setSuccessMessage('✅ Consultation enregistrée avec succès !');
-      setCurrentPatient(null);
 
       // Masquer le message après 3 secondes
       setTimeout(() => {
@@ -261,6 +318,11 @@ const ConsultationInput = () => {
     
     return `${diffMins} min`;
   };
+
+  const seeProfile = () => {
+    if (!currentPatient) return;
+    window.open(`/home/patient-profile/${currentPatient.patient.id}`, "_self");
+  }
 
   if (loading) {
     return (
@@ -292,11 +354,31 @@ const ConsultationInput = () => {
                 Interface rapide pour enregistrer les informations de consultation
               </p>
             </div>
-            <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-lg">
-              <Clock className="w-5 h-5 text-blue-600" />
-              <span className="font-medium text-blue-900">
-                {new Date().toLocaleTimeString('fr-FR')}
-              </span>
+            <div className="flex items-center gap-3">
+              {/* Indicateur de connexion WebSocket */}
+              <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${
+                socketConnected ? 'bg-green-50' : 'bg-red-50'
+              }`}>
+                {socketConnected ? (
+                  <>
+                    <Wifi className="w-4 h-4 text-green-600" />
+                    <span className="text-xs font-medium text-green-700">Connecté</span>
+                  </>
+                ) : (
+                  <>
+                    <WifiOff className="w-4 h-4 text-red-600" />
+                    <span className="text-xs font-medium text-red-700">Déconnecté</span>
+                  </>
+                )}
+              </div>
+              
+              {/* Horloge */}
+              <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-lg">
+                <Clock className="w-5 h-5 text-blue-600" />
+                <span className="font-medium text-blue-900">
+                  {new Date().toLocaleTimeString('fr-FR')}
+                </span>
+              </div>
             </div>
           </div>
         </motion.div>
@@ -336,7 +418,8 @@ const ConsultationInput = () => {
             className="bg-white rounded-xl shadow-lg overflow-hidden mb-6"
           >
             {/* En-tête patient */}
-            <div className="bg-gradient-to-r from-blue-500 to-purple-500 px-6 py-4">
+            <div onClick={() => seeProfile()} 
+            className="bg-gradient-to-r from-blue-500 to-purple-500 px-6 py-4">
               <div className="flex items-center justify-between text-white">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
