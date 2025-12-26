@@ -18,13 +18,11 @@ import { useAuth } from '../../store/AuthProvider';
 
 // Valeurs normales de référence pour chaque examen
 const NORMAL_RANGES = {
-  "CRP": { min: 0, max: 5, unit: "mg/L", displayName: "CRP" },
 
-  "Urée sanguine": { min: 2.5, max: 7.5, unit: "mmol/L", displayName: "Urée sanguine" },
+
+
   "Créatininémie": { min: 45, max: 90, unit: "µmol/L", displayName: "Créatininémie" },
-  "Ionogramme sanguin (Na+)": { min: 135, max: 145, unit: "mmol/L", displayName: "Sodium sanguin" },
-  "Ionogramme sanguin (K+)": { min: 3.5, max: 5.1, unit: "mmol/L", displayName: "Potassium sanguin" },
-  "Urécémie (acide urique)": { min: 140, max: 360, unit: "µmol/L", displayName: "Urécémie" },
+
 
   "Calcémie": { min: 2.15, max: 2.55, unit: "mmol/L", displayName: "Calcémie" },
   "Phosphorémie": { min: 0.8, max: 1.5, unit: "mmol/L", displayName: "Phosphorémie" },
@@ -36,10 +34,7 @@ const NORMAL_RANGES = {
   "Vitamine D (25-OH)": { min: 30, max: 100, unit: "ng/mL", displayName: "Vitamine D 25-OH" },
   "PTH": { min: 10, max: 65, unit: "pg/mL", displayName: "Parathormone (PTH)" },
 
-  "ASAT": { min: 10, max: 35, unit: "U/L", displayName: "ASAT" },
-  "ALAT": { min: 7, max: 56, unit: "U/L", displayName: "ALAT" },
-  "Gamma GT": { min: 8, max: 61, unit: "U/L", displayName: "Gamma GT" },
-  "Bilirubine totale": { min: 0, max: 17, unit: "µmol/L", displayName: "Bilirubine totale" },
+
   "TP (taux de prothrombine)": { min: 70, max: 100, unit: "%", displayName: "Taux de prothrombine (TP)" },
 
   "Sérologie Hépatite B": { min: 0, max: 0, unit: "positif/negatif", displayName: "Sérologie Hépatite B" },
@@ -62,8 +57,28 @@ const NORMAL_RANGES = {
   "ECBU": { min: 0, max: 0, unit: "infection/sterile", displayName: "ECBU" }
 };
 
+const categories = [
+  {
+    name: "Biochimie sanguine",
+    type: "Sang",
+    exams: {
+      "ASAT": { min: 10, max: 35, unit: "U/L", displayName: "ASAT" },
+      "ALAT": { min: 7, max: 56, unit: "U/L", displayName: "ALAT" },
+      "Gamma GT": { min: 8, max: 61, unit: "U/L", displayName: "Gamma GT" },
+      "Bilirubine totale": { min: 0, max: 17, unit: "µmol/L", displayName: "Bilirubine totale" },
+      "Ionogramme sanguin (Na+)": { min: 135, max: 145, unit: "mmol/L", displayName: "Sodium sanguin" },
+      "Ionogramme sanguin (K+)": { min: 3.5, max: 5.1, unit: "mmol/L", displayName: "Potassium sanguin" },
+      "Urécémie (acide urique)": { min: 140, max: 360, unit: "µmol/L", displayName: "Urécémie" },
+      "Urée sanguine": { min: 2.5, max: 7.5, unit: "mmol/L", displayName: "Urée sanguine" },
+      "CRP": { min: 0, max: 5, unit: "mg/L", displayName: "CRP" },
+    }
+  }
+]
+
 // Types de prélèvement disponibles
 const SAMPLE_TYPES = ['Sang', 'Urine', 'Selles', 'Autre'];
+
+
 
 // Examens disponibles
 const EXAM_TYPES = Object.keys(NORMAL_RANGES);
@@ -71,24 +86,44 @@ const EXAM_TYPES = Object.keys(NORMAL_RANGES);
 // Fonction pour comparer une valeur avec les normes
 const compareWithNorm = (examType, value) => {
   if (!value || value === '' || !NORMAL_RANGES[examType]) return null;
-  
+
   const numValue = parseFloat(value);
   const { min, max } = NORMAL_RANGES[examType];
-  
+
   if (isNaN(numValue)) return null;
-  
+
   if (numValue < min || numValue > max) return 'Hors norme';
-  
+
   // Limite = entre 90% et 110% des bornes
   const minLimit = min * 0.9;
   const maxLimit = max * 1.1;
-  
+
   if ((numValue >= minLimit && numValue < min) || (numValue > max && numValue <= maxLimit)) {
     return 'Limite';
   }
-  
+
   return 'Normal';
 };
+
+const CategoryBar = ({ category }) => {
+  const [isOpened, setIsOpened] = useState(false)
+  return (
+    <div className={`overflow-hidden border border-gray-400 bg-gray-100 rounded-lg px-2 py-3 ${isOpened ? '' : 'h-14'}`}>
+      <div className='flex items-center justify-between mb-4'>
+        <span className="text-lg font-medium text-gray-700">{category.name}</span>
+
+        <button onClick={() => setIsOpened(!isOpened)}>
+          <ChevronDown className={`w-5 h-5 text-gray-600 float-right transition-transform duration-200 ${isOpened ? 'rotate-180' : ''}`} />
+        </button>
+      </div>
+
+
+      {isOpened && (<div className='h-16 rounded-lg bg-white'>
+          
+      </div>)}
+    </div>
+  )
+}
 
 // Composant principal
 const BiologicalDataSection = ({ patientId }) => {
@@ -99,12 +134,14 @@ const BiologicalDataSection = ({ patientId }) => {
   const [editingRequest, setEditingRequest] = useState(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [expandedRequests, setExpandedRequests] = useState({}); // Pour gérer l'accordéon
-  
+
   // État du formulaire de création
   const [formData, setFormData] = useState({
     sampleTypes: [],
     requestedExams: []
   });
+
+  const selectedCategories = categories.filter(category => formData.sampleTypes.includes(category.type));
 
   // État du formulaire d'édition des résultats
   const [resultsData, setResultsData] = useState({});
@@ -331,6 +368,7 @@ const BiologicalDataSection = ({ patientId }) => {
         ? prev.sampleTypes.filter(t => t !== type)
         : [...prev.sampleTypes, type]
     }));
+    console.log(selectedCategories)
   };
 
   // Gérer les cases à cocher pour examens
@@ -406,11 +444,10 @@ const BiologicalDataSection = ({ patientId }) => {
                       <h4 className="font-semibold text-gray-800">
                         Demande N° {request.requestNumber}
                       </h4>
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        request.status === 'Complété' 
-                          ? 'bg-green-100 text-green-700' 
-                          : 'bg-orange-100 text-orange-700'
-                      }`}>
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${request.status === 'Complété'
+                        ? 'bg-green-100 text-green-700'
+                        : 'bg-orange-100 text-orange-700'
+                        }`}>
                         {request.status === 'Complété' ? '🟢' : '🟠'} {request.status}
                       </span>
                       <span className="text-sm text-gray-500">
@@ -456,7 +493,7 @@ const BiologicalDataSection = ({ patientId }) => {
                                 const range = NORMAL_RANGES[exam];
                                 const value = request.results?.[exam];
                                 const status = compareWithNorm(exam, value);
-                                
+
                                 return (
                                   <tr key={exam} className="border-b border-gray-100 hover:bg-white transition-colors">
                                     <td className="py-3 px-4 text-sm text-gray-800">{exam}</td>
@@ -474,11 +511,10 @@ const BiologicalDataSection = ({ patientId }) => {
                                     </td>
                                     <td className="py-3 px-4">
                                       {status ? (
-                                        <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${
-                                          status === 'Normal' ? 'bg-green-100 text-green-700' :
+                                        <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${status === 'Normal' ? 'bg-green-100 text-green-700' :
                                           status === 'Limite' ? 'bg-orange-100 text-orange-700' :
-                                          'bg-red-100 text-red-700'
-                                        }`}>
+                                            'bg-red-100 text-red-700'
+                                          }`}>
                                           {status === 'Normal' && <CheckCircle className="w-3 h-3" />}
                                           {status === 'Limite' && <AlertTriangle className="w-3 h-3" />}
                                           {status === 'Hors norme' && <AlertCircle className="w-3 h-3" />}
@@ -489,7 +525,7 @@ const BiologicalDataSection = ({ patientId }) => {
                                       )}
                                     </td>
                                     <td className="py-3 px-4 text-sm text-gray-600">
-                                      {request.samplingDate 
+                                      {request.samplingDate
                                         ? new Date(request.samplingDate).toLocaleDateString('fr-FR')
                                         : '-'}
                                     </td>
@@ -570,20 +606,9 @@ const BiologicalDataSection = ({ patientId }) => {
                       <label className="block text-sm font-semibold text-gray-700 mb-3">
                         Examens demandés *
                       </label>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {EXAM_TYPES.map((exam) => (
-                          <label
-                            key={exam}
-                            className="flex items-center gap-2 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={formData.requestedExams.includes(exam)}
-                              onChange={() => handleExamChange(exam)}
-                              className="w-4 h-4 text-purple-600 focus:ring-purple-500"
-                            />
-                            <span className="text-sm font-medium text-gray-700">{exam}</span>
-                          </label>
+                      <div className="grid grid-cols-1  gap-3">
+                        {selectedCategories.map((category) => (
+                          <CategoryBar category={category} />
                         ))}
                       </div>
                     </div>
@@ -598,17 +623,16 @@ const BiologicalDataSection = ({ patientId }) => {
                       {editingRequest.requestedExams.map((exam) => {
                         const range = NORMAL_RANGES[exam];
                         const status = compareWithNorm(exam, resultsData[exam]);
-                        
+
                         return (
                           <div key={exam} className="border border-gray-200 rounded-lg p-4">
                             <div className="flex items-center justify-between mb-2">
                               <span className="text-sm font-medium text-gray-700">{exam}</span>
                               {status && (
-                                <span className={`text-xs px-2 py-1 rounded-full ${
-                                  status === 'Normal' ? 'bg-green-100 text-green-700' :
+                                <span className={`text-xs px-2 py-1 rounded-full ${status === 'Normal' ? 'bg-green-100 text-green-700' :
                                   status === 'Limite' ? 'bg-orange-100 text-orange-700' :
-                                  'bg-red-100 text-red-700'
-                                }`}>
+                                    'bg-red-100 text-red-700'
+                                  }`}>
                                   {status}
                                 </span>
                               )}
