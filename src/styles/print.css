@@ -1,0 +1,85 @@
+/**
+ * Print styles for prescription documents
+ */
+
+@media print {
+  /* Hide unnecessary elements */
+  body * {
+    visibility: hidden;
+  }
+
+  #prescription-preview,
+  #prescription-preview * {
+    visibility: visible;
+  }
+
+  #prescription-preview {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+
+  /* Hide action buttons in preview */
+  #prescription-preview button {
+    display: none !important;
+  }
+
+  /* Page setup */
+  @page {
+    size: A4;
+    margin: 20mm;
+  }
+
+  /* Ensure proper page breaks */
+  .page-break {
+    page-break-before: always;
+  }
+
+  /* Optimize colors for printing */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Ensure borders are visible */
+  .border,
+  .border-t,
+  .border-b,
+  .border-l,
+  .border-r {
+    border-color: #000 !important;
+  }
+
+  /* Make sure text is black for readability */
+  body {
+    color: #000;
+  }
+
+  /* Hide shadows for cleaner print */
+  .shadow,
+  .shadow-sm,
+  .shadow-md,
+  .shadow-lg,
+  .shadow-xl {
+    box-shadow: none !important;
+  }
+}
+
+/* Screen-only styles (not for print) */
+@media screen {
+  .print-only {
+    display: none;
+  }
+}
+
+/* Print-only styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block;
+  }
+}
