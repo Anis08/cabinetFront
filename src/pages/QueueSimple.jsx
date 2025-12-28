@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Clock, Plus, Phone, Play, CheckCircle, XCircle, AlertTriangle, UserX } from 'lucide-react'
+import { Clock, Plus, Phone, Play, CheckCircle, XCircle, AlertTriangle, UserX, Eye } from 'lucide-react'
 import { baseURL } from "../config"
 import { useAuth } from '../store/AuthProvider'
 import { useData } from '../store/DataProvider'
+import { useNavigate } from "react-router-dom";
 
 const QueueSimple = () => {
   const [currentTime, setCurrentTime] = useState(new Date())
@@ -20,7 +21,7 @@ const QueueSimple = () => {
     patientId: '',
   });
   const [selectedChoice, setSelectedChoice] = useState('queue');
-
+    const navigate = useNavigate();
 
   const listChoice = [
     { text: 'File d\'attente', value: 'queue' },
@@ -204,14 +205,6 @@ const QueueSimple = () => {
     }
   ]
 
-  const getUrgencyColor = (niveau) => {
-    switch (niveau) {
-      case 'critique': return 'bg-red-100 text-red-800 border-red-200'
-      case 'prioritaire': return 'bg-orange-100 text-orange-800 border-orange-200'
-      case 'standard': return 'bg-blue-100 text-blue-800 border-blue-200'
-      default: return 'bg-gray-100 text-gray-800 border-gray-200'
-    }
-  }
 
   const getStatusColor = (statut) => {
     switch (statut) {
@@ -772,6 +765,7 @@ const QueueSimple = () => {
 
   }
 
+
   // Function to finish consultation (update backend)
   const finishConsultation = async (rendezVousId) => {
     setFinishEnabled(false)
@@ -841,7 +835,12 @@ const QueueSimple = () => {
       const data = await response.json();
 
       setTodayAppointments(
-        todayAppointments.filter(ap => ap.id !== rendezVousId)
+        todayAppointments.map(ap => {
+          if (ap.id === rendezVousId) {
+            return { ...ap, state: 'Completed', endTime: new Date().toISOString(), paye: Number(finishForm.paye) };
+          }
+          return ap;
+        })
       );
 
       
@@ -980,7 +979,7 @@ const QueueSimple = () => {
                 <Clock className="h-5 w-5 text-blue-600" />
               </div>
               <div className="ml-3">
-                <p className="text-sm font-medium text-gray-500">Total file</p>
+                <p className="text-sm font-medium text-gray-500">Total aujourd'hui</p>
                 <p className="text-2xl font-semibold text-gray-900">{todayAppointments?.length}</p>
               </div>
             </div>
@@ -1081,6 +1080,11 @@ const QueueSimple = () => {
                       {getStatusIcon('en_consultation')}
                       <span>en consultation</span>
                     </div>
+
+                    <button onClick={() => navigate(`/home/patient-profile/${todayAppointments.find(ap => ap.state === 'InProgress').patient.id}`)}
+                       title={null} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                        <Eye className="h-4 w-4" />
+                      </button>
 
                     {/* Annuler (retourner à la ligne d’attente) */}
                     <button
@@ -1216,6 +1220,11 @@ const QueueSimple = () => {
                         <span>en attente</span>
                       </div>
 
+                      <button onClick={() => navigate(`/home/patient-profile/${item.patient.id}`)}
+                       title={null} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                        <Eye className="h-4 w-4" />
+                      </button>
+
                       <button
                       className="ml-2 px-3 py-2 rounded bg-yellow-500 text-white hover:bg-yellow-600 transition-colors text-xs font-semibold"
                       onClick={() => handleReturnToAbsent(item.id)}
@@ -1284,7 +1293,10 @@ const QueueSimple = () => {
 
                       <div className="flex items-center space-x-4">
 
-
+                      <button onClick={() => navigate(`/home/patient-profile/${item.patient.id}`)}
+                       title={null} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                        <Eye className="h-4 w-4" />
+                      </button>
 
 
                         {/* Actions */}

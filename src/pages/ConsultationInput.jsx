@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from "react-router-dom";
 import { motion } from 'framer-motion';
 import {
   User,
@@ -17,12 +18,14 @@ import {
 } from 'lucide-react';
 import { io } from 'socket.io-client';
 import { baseURL } from '../config';
+import BiologicalDataSection from '../components/Patients/BiologicalDataSection';
 import { useAuth } from '../store/AuthProvider';
 import { useData } from '../store/DataProvider';
 
 const ConsultationInput = () => {
   const { logout, refresh } = useAuth();
   const [ todayAppointments, setTodayAppointments ] = useState();
+    const navigate = useNavigate();
   
   // État pour le patient en consultation
   const [currentPatient, setCurrentPatient] = useState(null);
@@ -443,13 +446,14 @@ const ConsultationInput = () => {
 
         {/* Informations du patient en consultation */}
         {currentPatient ? (
+          <>
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             className="bg-white rounded-xl shadow-lg overflow-hidden mb-6"
           >
             {/* En-tête patient */}
-            <div className="bg-gradient-to-r from-blue-500 to-purple-500 px-6 py-4">
+            <div className="bg-gradient-to-r from-blue-500 to-purple-500 px-6 py-4 cursor-pointer" onClick={() => navigate(`/home/patient-profile/${currentPatient.patient.id}`)}>
               <div className="flex items-center justify-between text-white">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
@@ -673,7 +677,11 @@ const ConsultationInput = () => {
                 </button>
               </div>
             </form>
+
+            
           </motion.div>
+          <BiologicalDataSection patientId={currentPatient.patient.id} />
+          </>
         ) : (
           <motion.div
             initial={{ opacity: 0 }}
@@ -691,6 +699,8 @@ const ConsultationInput = () => {
             </p>
           </motion.div>
         )}
+
+        
       </div>
     </div>
   );

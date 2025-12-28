@@ -39,7 +39,8 @@ import {
   Mail,
   Phone,
   MapPin,
-  StickyNote
+  StickyNote,
+  ChevronLeft
 } from 'lucide-react';
 import BiologicalDataSection from '../components/Patients/BiologicalDataSection';
 import OrdonnanceEditor from '../components/Ordonnances/OrdonnanceEditor';
@@ -389,7 +390,8 @@ const PatientProfile: React.FC = () => {
         poids: selectedRendezVous.poids || '',
         imc: selectedRendezVous.imc || '',
         pcm: selectedRendezVous.pcm || '',
-        pulse: selectedRendezVous.pulse || '',      });
+        pulse: selectedRendezVous.pulse || '',
+      });
     }
   }, [selectedRendezVous]);
 
@@ -1029,67 +1031,67 @@ const PatientProfile: React.FC = () => {
 
 
   const handleSaveVitalSigns = async () => {
-    if(selectedRendezVous.pulse == vitalSignsForm.pulse && selectedRendezVous.paSystolique == vitalSignsForm.paSystolique && selectedRendezVous.paDiastolique == vitalSignsForm.paDiastolique && selectedRendezVous.poids == vitalSignsForm.poids && selectedRendezVous.imc == vitalSignsForm.imc && selectedRendezVous.pcm == vitalSignsForm.pcm){
+    if (selectedRendezVous.pulse == vitalSignsForm.pulse && selectedRendezVous.paSystolique == vitalSignsForm.paSystolique && selectedRendezVous.paDiastolique == vitalSignsForm.paDiastolique && selectedRendezVous.poids == vitalSignsForm.poids && selectedRendezVous.imc == vitalSignsForm.imc && selectedRendezVous.pcm == vitalSignsForm.pcm) {
       return;
     }
     setSavingVitalSigns(true);
-      try {
-        let response = await fetch(`${baseURL}/medecin/rendez-vous/${selectedRendezVous.id}/vital-signs`, {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-          body: JSON.stringify(vitalSignsForm),
-        });
-        if (!response.ok) {
-          if (response.status === 403) {
+    try {
+      let response = await fetch(`${baseURL}/medecin/rendez-vous/${selectedRendezVous.id}/vital-signs`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(vitalSignsForm),
+      });
+      if (!response.ok) {
+        if (response.status === 403) {
+          logout();
+          return;
+        }
+        if (response.status === 401) {
+          const refreshResponse = await refresh();
+          if (!refreshResponse) {
             logout();
             return;
           }
-          if (response.status === 401) {
-            const refreshResponse = await refresh();
-            if (!refreshResponse) {
-              logout();
-              return;
-            }
-            response = await fetch(`${baseURL}/medecin/rendez-vous/${selectedRendezVous.id}/vital-signs`, {
-              method: 'PUT',
-              headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                'Content-Type': 'application/json',
-              },
-              credentials: 'include',
-              body: JSON.stringify(vitalSignsForm),
-            });
-          }
-        }
-        if (response.ok) {
-          const data = await response.json();
-          // Update patient state with new vital signs
-          setPatient(prevPatient => {
-            if (!prevPatient) return prevPatient;
-            return {
-              ...prevPatient,
-              rendezVous: prevPatient.rendezVous.map(rdv =>
-                rdv.id === selectedRendezVous.id
-                  ? { ...rdv, ...data.rendezVous }
-                  : rdv
-              )
-            };
+          response = await fetch(`${baseURL}/medecin/rendez-vous/${selectedRendezVous.id}/vital-signs`, {
+            method: 'PUT',
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`,
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify(vitalSignsForm),
           });
-          setShowVitalSignsModal(false);
-          alert('Signes vitaux mis à jour avec succès !');
         }
-      } catch (error) {
-        console.error('Erreur:', error);
-        alert('Une erreur est survenue lors de la mise à jour des signes vitaux.');
       }
-      finally {
-        setSavingVitalSigns(false);
+      if (response.ok) {
+        const data = await response.json();
+        // Update patient state with new vital signs
+        setPatient(prevPatient => {
+          if (!prevPatient) return prevPatient;
+          return {
+            ...prevPatient,
+            rendezVous: prevPatient.rendezVous.map(rdv =>
+              rdv.id === selectedRendezVous.id
+                ? { ...rdv, ...data.rendezVous }
+                : rdv
+            )
+          };
+        });
+        setShowVitalSignsModal(false);
+        alert('Signes vitaux mis à jour avec succès !');
       }
-    
+    } catch (error) {
+      console.error('Erreur:', error);
+      alert('Une erreur est survenue lors de la mise à jour des signes vitaux.');
+    }
+    finally {
+      setSavingVitalSigns(false);
+    }
+
   }
 
 
@@ -1100,7 +1102,12 @@ const PatientProfile: React.FC = () => {
       <div className=" p-8">
         {/* Patient Header */}
         <Card className="mb-8 overflow-hidden">
-          <div className="bg-gradient-to-r from-blue-500 to-purple-500 h-32"></div>
+          <div className="bg-gradient-to-r from-blue-500 to-purple-500 h-32">
+            <button onClick={() => navigate(-1)}>
+              <ChevronLeft className="w-10 h-10 text-white m-4" />
+            </button>
+
+          </div>
           <CardContent className="relative pb-6">
             <div className="flex flex-col md:flex-row items-start md:items-end gap-6 ">
               <div className="flex-1">
@@ -1238,8 +1245,10 @@ const PatientProfile: React.FC = () => {
             <h2 className="text-2xl font-bold text-gray-800">Constantes Vitales</h2>
             <div className="flex gap-3">
               <button
-                onClick={() => {setSelectedRendezVous(patient?.rendezVous[0]);
-                  handleOpenVitalSignsModal()}}
+                onClick={() => {
+                  setSelectedRendezVous(patient?.rendezVous[0]);
+                  handleOpenVitalSignsModal()
+                }}
                 className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-green-500 to-teal-500 text-white rounded-lg hover:from-green-600 hover:to-teal-600 transition-all shadow-md hover:shadow-lg"
               >
                 <Plus className="w-4 h-4" />
@@ -1259,7 +1268,7 @@ const PatientProfile: React.FC = () => {
               <VitalSignCard key={index} vital={vital} />
             ))}
           </div>
-          
+
           {/* Body Surface Area - Separate dedicated card */}
           <div className="mt-4">
             <Card className="hover:shadow-md transition-shadow border-2 border-orange-100">
@@ -1287,8 +1296,8 @@ const PatientProfile: React.FC = () => {
                             {!bodyWeight && !bodyHeight
                               ? "Poids et taille manquants"
                               : !bodyWeight
-                              ? "Poids manquant"
-                              : "Taille manquante"}
+                                ? "Poids manquant"
+                                : "Taille manquante"}
                           </p>
                         </div>
                       )}
@@ -1746,7 +1755,8 @@ const PatientProfile: React.FC = () => {
                               </span>
                             )}
                             <button
-                              onClick={() =>{ setSelectedRendezVous(consultation)
+                              onClick={() => {
+                                setSelectedRendezVous(consultation)
                                 handleOpenVitalSignsModal();
                               }}
                               className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors"
@@ -2191,7 +2201,7 @@ const PatientProfile: React.FC = () => {
                   {patient?.rendezVous !== 0 && patient.rendezVous.map((rdv) => (
                     <div className='border flex items-center justify-center rounded-lg py-2'>
                       <button className='' onClick={() => setSelectedRendezVous(rdv)} key={rdv.id}>
-                        
+
                         <div className="flex items-center gap-2 text-sm">
                           <Calendar className="w-4 h-4 text-gray-400" />
                           <span className="font-medium text-gray-700">
